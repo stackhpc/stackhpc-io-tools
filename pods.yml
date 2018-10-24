@@ -1,0 +1,18 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: fio-pv-pod
+spec:
+  hostNetwork: true
+  volumes:
+    - name: fio-pv-volume
+      persistentVolumeClaim:
+       claimName: fio-pv-claim
+  containers:
+    - name: fio-test
+      image: docker.io/antonipx/fio:latest
+      args: ['--blocksize=64k --filename=/mnt/fio.dat --ioengine=libaio --readwrite=write --size=10G --name=test --direct=1 --iodepth=128 --end_fsync=1']
+      volumeMounts:
+        - mountPath: "/mnt"
+          name: fio-pv-volume
+
