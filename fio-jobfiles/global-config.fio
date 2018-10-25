@@ -1,0 +1,25 @@
+; [global]
+; Parameters common to all test environments
+
+; Ensure that jobs run for a specified time limit, not I/O quantity
+time_based=1
+
+; To model application load at greater scale, each test client will maintain
+; a number of concurrent I/Os.
+ioengine=libaio
+iodepth=8
+
+; Note: these two settings are mutually exclusive
+; (and may not apply for Windows test clients)
+direct=1
+buffered=0
+
+; Set a number of workers on this client
+thread=0
+numjobs=8
+group_reporting=1
+
+; Each file for each job thread is this size
+filesize=8g
+size=8g
+filename_format=fio_data-$jobnum.dat

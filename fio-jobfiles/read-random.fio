@@ -1,0 +1,8 @@
+[global]
+include global-config.fio
+
+; for ((s=128; s <= $((16*1024*1024)); s=$s * 2)); do echo -e "[randread-$s]\nblocksize=$s\noutput=randread-$s.json\n"; done
+
+[read]
+rw=read
+
