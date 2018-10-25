@@ -4,8 +4,10 @@ metadata:
   name: fio-job
 spec:
   parallelism: 2
-  completions: 10
+  completions: 2
   template:
+    metadata:
+      name: fio-pod
     spec:
       hostNetwork: true
       volumes:
@@ -14,19 +16,25 @@ spec:
           claimName: fio-pv-claim
       containers:
         - name: fio-test
-          image: docker.io/antonipx/fio:latest
+          env:
+            - name: CI
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          image: docker.io/pierreozoux/fio:latest
           args:
+            - '--output-format=json'
             - '--blocksize=64k'
-            - '--filename=/mnt/fio.dat'
             - '--ioengine=libaio'
-            - '--readwrite=write'
             - '--size=10G'
             - '--name=test'
             - '--direct=1'
             - '--iodepth=128'
+            - '--filename=/mnt/fio.dat'
+            - '--readwrite=write'
             - '--end_fsync=1'
           volumeMounts:
-            - mountPath: "/mnt"
+            - mountPath: "/data"
               name: fio-pv-volume
-      restartPolicy: Never
+      restartPolicy: OnFailure
 
