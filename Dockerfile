@@ -28,4 +28,4 @@ RUN set -x \
     && apk add --no-cache --virtual .run-deps $runDeps \
     && apk del .build-deps
 
-ADD jobfiles /jobfiles
+ADD fio-jobfiles /fio-jobfiles
