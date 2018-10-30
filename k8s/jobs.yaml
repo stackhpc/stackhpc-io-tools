@@ -28,7 +28,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/brtknr/fio:v3.11.8
+        image: docker.io/brtknr/fio:v3.11.9
         imagePullPolicy: IfNotPresent
         name: fio-test
         resources: {}
