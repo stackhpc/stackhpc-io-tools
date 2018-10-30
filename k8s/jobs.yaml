@@ -1,40 +1,47 @@
-kind: Job
 apiVersion: batch/v1
+kind: Job
 metadata:
-  name: fio-job
+  annotations:
+  labels:
+    job-name: fio
+  name: fio
+  namespace: default
+  selfLink: /apis/batch/v1/namespaces/default/jobs/fio
 spec:
-  parallelism: 2
+  backoffLimit: 6
   completions: 2
+  parallelism: 2
   template:
     metadata:
+      labels:
+        job-name: fio
       name: fio-pod
     spec:
-      hostNetwork: true
-      volumes:
-       - name: fio-pv-volume
-         persistentVolumeClaim:
-          claimName: fio-pv-claim
       containers:
-        - name: fio-test
-          env:
-            - name: CI
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-          image: docker.io/pierreozoux/fio:latest
-          args:
-            - '--output-format=json'
-            - '--blocksize=64k'
-            - '--ioengine=libaio'
-            - '--size=10G'
-            - '--name=test'
-            - '--direct=1'
-            - '--iodepth=128'
-            - '--filename=/mnt/fio.dat'
-            - '--readwrite=write'
-            - '--end_fsync=1'
-          volumeMounts:
-            - mountPath: "/data"
-              name: fio-pv-volume
+      - args:
+        - /fio-jobfiles/run-fio.sh
+        command:
+        - /bin/sh
+        env:
+        - name: JOB_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: docker.io/brtknr/fio:v3.11.7
+        imagePullPolicy: IfNotPresent
+        name: fio-test
+        resources: {}
+        volumeMounts:
+        - mountPath: /data
+          name: fio-pv-volume
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
       restartPolicy: OnFailure
-
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: fio-pv-volume
+        persistentVolumeClaim:
+          claimName: fio-pv-claim
