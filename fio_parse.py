@@ -16,17 +16,24 @@ import pdb
 class ClatGrid:
     min_x = 0
     max_x = 0
+    min_y = 0.0
     max_y = 0.0
     grid_y = 0
     io_bs = {}
     io_density = {}
     iops_bs = {}
+    timescale = 'us'
+    logscale = False
     
-    def __init__( self, grid_y, input_dirs, output_dir, force):
+    def __init__( self, grid_y, input_dirs, output_dir, force, logscale=False, timescale='us', max_bs=65536):
         self.grid_y = grid_y
+        self.logscale = logscale
+        self.timescale = timescale
+        self.max_bs = max_bs
+        ensure_output_dir(output_dir, force)
         for input_dir in input_dirs:
             print "Scanning for fio data in %s" % input_dir
-            self.populate(input_dir, output_dir, force)
+            self.populate(input_dir, output_dir)
         self.plot_data(output_dir)
 
     # Each series is indexed by the IO size (and the test mode)
@@ -43,8 +50,16 @@ class ClatGrid:
         bs_data = {}
         for y_str, z_str in clat_data.iteritems():
             y = float(y_str)
+            if self.timescale == 'us':
+                y /= 1000.0
+            elif self.timescale == 'ms':
+                y /= 1000000.0
+            if self.logscale:
+                y = math.log(y, 10)
             z = float(z_str)
             bs_data[y] = z
+            if self.min_y == 0 or self.min_y > y:
+                self.min_y = y
             if self.max_y < y:
                 self.max_y = y
 
@@ -165,28 +180,28 @@ class ClatGrid:
         palette = plt.matplotlib.colors.LinearSegmentedColormap('jet3', plt.cm.datad['jet'], 2048)
         palette.set_under(alpha=0.0) 
 
-        extent = (self.min_x-0.5, self.max_x+0.5, 1.0, self.max_y)
+        extent = (self.min_x-0.5, self.max_x+0.5, self.min_y, self.max_y)
         plt.imshow(grid, extent=extent, cmap=palette, origin='lower', vmin=0.0, vmax=max_z, aspect='auto', interpolation='none')
-        plt.ylim(10**5,10**7)
-        plt.ylabel('commit latency - $ns$')
+        if self.logscale:
+            #plt.ylim(10**5,10**7)
+            plt.ylabel('Logarithmic commit latency - $%s$' % self.timescale)
+        else:
+            plt.ylim(10**5,10**7)
+            plt.ylabel('commit latency - $%s$' % self.timescale)
         plt.xlabel(r'block size - $2^n$')
-        #plt.colorbar(label='relative frequency per blocksize')
         filename = "%s/%s" % (output_dir, filename)
         plt.savefig(filename, dpi=150, orientation='landscape', transparent=False)
         print 'Plotting to %s' % filename
 
-    def populate(self, input_dir, output_dir, force):
+    def populate(self, input_dir, output_dir):
         # For each blocksize found, emit data from each listed job
-        # FIXME: if we forced the creation of the result dir, zap the contents here.
-        # FIXME: need to incorporate hostname
+        # FIXME: need to incorporate hostname and dataset name in the results
         # Emit bandwidth data points in column format
-        self.fio_file_list = fio_file_list = get_fio_file_list(input_dir)
-        ensure_output_dir(output_dir, force)
-        self.fio_results = fio_results = get_fio_results(fio_file_list)
-        self.bs_list = bs_list = sorted(fio_results.keys())
+        fio_file_list = get_fio_file_list(input_dir)
+        fio_results = get_fio_results(fio_file_list)
+        bs_list = sorted(fio_results.keys())
         for bs in bs_list:
             for bs_job in fio_results[bs]['jobs']:
-                print "I/O size %d job %s" % (bs, bs_job['jobname'])
 
                 # Read and write bandwidth as a function of I/O size
                 with open(output_dir + '/' + bs_job['jobname'] + '-bandwidth.dat', 'a+') as job_fd:
@@ -224,10 +239,12 @@ class ClatGrid:
                     job_fd.write('\n')
 
                 # Aggregate data from each dataset
-                if bs <= 65536:
+                if bs <= self.max_bs:
                     self.add_series( int(bs), bs_job['read']['total_ios'], bs_job['read']['clat_ns']['bins'] ) 
+
+                print "I/O size %8d, job %s: %d samples" % (bs, bs_job['jobname'], bs_job['read']['total_ios'])
             
-        print "Parsed data for I/O sizes %s" % (bs_list)
+        print "Aggregated data for %d I/Os, max latency %f %s" % (sum(self.iops_bs.values()), self.max_y if not self.logscale else 10**self.max_y, self.timescale)
 
 def get_fio_file_list(input_dir):
     # List JSON files in the fio input directory
@@ -281,15 +298,30 @@ def get_fio_results(fio_file_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse fio output')
+    parser.add_argument('-L',
+        dest="logscale", action='store_const', const=True, required=False,
+        help='Logarithmic axes for latency plots')
+    parser.add_argument('-f',
+        dest="force", action='store_const', const=True, required=False,
+        help='Overwrite previous output data, if existing')
     parser.add_argument('--output-dir', metavar='<path>',
         dest="output_dir", type=str, required=True,
         help='Directory for result data for plotting')
-    parser.add_argument('--force',
-        dest="force", action='store_const', const=True, required=False,
-        help='Overwrite previous output data, if existing')
+    parser.add_argument('--units', metavar='<ns|us|ms>',
+        dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
+        help='Latency time units')
+    parser.add_argument('--max-lat-bs', metavar='<io-size>',
+        dest="max_lat_bs", type=int, default=65536,
+        help='Maximum I/O size to include in latency plots')
     parser.add_argument('input_dirs', nargs='+',
         help='Directory of output files from fio in json+ format')
 
     args = parser.parse_args()
 
-    grid = ClatGrid(5000, args.input_dirs, args.output_dir, args.force)
+    # Logarithmic plots fare better with more granular bins
+    if args.logscale:
+        granularity=100
+    else:
+        grit_units=2000
+
+    grid = ClatGrid(granularity, args.input_dirs, args.output_dir, args.force, args.logscale, args.units, args.max_lat_bs)
