@@ -19,28 +19,26 @@ spec:
     spec:
       containers:
       - args:
-        - /fio-jobfiles/run-fio.sh
+        - /fio_jobfiles/run_fio.sh
         command:
         - /bin/sh
         env:
+        - name: NUM_JOBS
+          value: "8"
         - name: JOB_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/brtknr/fio:v3.11.9
-        imagePullPolicy: IfNotPresent
+        image: docker.io/brtknr/fio:v3.11
+        imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:
         - mountPath: /data
           name: fio-pv-volume
-      dnsPolicy: ClusterFirst
       hostNetwork: true
       restartPolicy: OnFailure
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
       volumes:
       - name: fio-pv-volume
         persistentVolumeClaim:

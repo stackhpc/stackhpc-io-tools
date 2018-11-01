@@ -8,12 +8,12 @@ test_dataset_file_gb=8
 for i in $test_clients
 do 
     # Create test directories, one per client
-    datadir=$test_dir/fio-datafiles/$i
+    datadir=$test_dir/fio_datafiles/$i
     mkdir -p $datadir
 
     for ((j=0; j < $test_dataset_files; j=$j+1))
     do
-        datafile=$datadir/fio_data-$j.dat
+        datafile=$datadir/$j.dat
 
         if [[ -f $datafile ]]
         then

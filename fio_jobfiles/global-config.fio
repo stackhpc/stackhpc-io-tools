@@ -16,10 +16,10 @@ buffered=0
 
 ; Set a number of workers on this client
 thread=0
-numjobs=8
+numjobs=${NUM_JOBS}
 group_reporting=1
 
 ; Each file for each job thread is this size
 filesize=8g
 size=8g
-filename_format=${WORK_DIR}/$jobnum.dat
+filename_format=$jobnum.dat

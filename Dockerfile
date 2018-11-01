@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-ENV FIO_VERSION 3.11
+ARG FIO_VERSION
 
 RUN set -x \
     && apk add --no-cache --virtual .build-deps \
@@ -28,4 +28,4 @@ RUN set -x \
     && apk add --no-cache --virtual .run-deps $runDeps \
     && apk del .build-deps
 
-ADD fio-jobfiles /fio-jobfiles
+ADD fio_jobfiles /fio_jobfiles
