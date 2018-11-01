@@ -20,6 +20,6 @@ numjobs=${NUM_JOBS}
 group_reporting=1
 
 ; Each file for each job thread is this size
-filesize=8g
-size=8g
+filesize=32g
+size=32g
 filename_format=$jobnum.dat

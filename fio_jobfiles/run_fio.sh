@@ -1,5 +1,5 @@
 #!/bin/sh
-export DATA_DIR=/data/fio_datafiles
+export DATA_DIR=/data/fio_datafiles/k8s
 export WORK_DIR=/data/read_random/$JOB_NAME
 mkdir -p $WORK_DIR
 let i=128

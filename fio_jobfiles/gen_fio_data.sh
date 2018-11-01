@@ -1,9 +1,9 @@
 #!/bin/bash
 
-test_dir=/alaska/stig/stackhpc-io-tools
+test_dir=/alaska/bharat
 test_clients=$*
-test_dataset_files=8
-test_dataset_file_gb=8
+test_dataset_files=4
+test_dataset_file_gb=32
 
 for i in $test_clients
 do 

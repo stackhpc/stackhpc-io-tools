@@ -24,7 +24,7 @@ spec:
         - /bin/sh
         env:
         - name: NUM_JOBS
-          value: "8"
+          value: "4"
         - name: JOB_NAME
           valueFrom:
             fieldRef:
