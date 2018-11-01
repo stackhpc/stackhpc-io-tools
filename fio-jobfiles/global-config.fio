@@ -22,4 +22,4 @@ group_reporting=1
 ; Each file for each job thread is this size
 filesize=8g
 size=8g
-filename_format=fio_data-$jobnum.dat
+filename_format=${WORK_DIR}/$jobnum.dat
