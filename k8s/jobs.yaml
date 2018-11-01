@@ -1,20 +1,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  annotations:
-  labels:
-    job-name: fio
-  name: fio
-  namespace: default
-  selfLink: /apis/batch/v1/namespaces/default/jobs/fio
+  name: fio-rrc16p16
 spec:
   backoffLimit: 6
-  completions: 2
-  parallelism: 2
+  completions: 16
+  parallelism: 16
   template:
     metadata:
-      labels:
-        job-name: fio
       name: fio-pod
     spec:
       containers:
@@ -26,12 +19,14 @@ spec:
         - name: NUM_JOBS
           value: "4"
         - name: JOB_NAME
+          value: "fio-rrc16p16"
+        - name: POD_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/brtknr/fio:v3.11.10
-        imagePullPolicy: Always
+        image: docker.io/brtknr/fio:v3.11
+        #imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:

@@ -1,7 +1,7 @@
 #! /bin/env bash
 
 export FIO_VERSION=3.11
-export FIO_TAG=v${FIO_VERSION}.10
+export FIO_TAG=v${FIO_VERSION}
 
 sudo docker build . --build-arg FIO_VERSION=${FIO_VERSION} \
     -t brtknr/fio:${FIO_TAG} && \
