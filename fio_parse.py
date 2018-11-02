@@ -29,13 +29,14 @@ class ClatGrid:
         'ms': {'divider': 10**6, 'label':'m s'},
     }
     
-    def __init__( self, input_dirs, output_dir, granularity, force, logscale=False, timescale='us', max_bs=65536):
+    def __init__( self, input_dirs, output_dir, granularity, force, skip_bs=[], logscale=False, timescale='us', max_bs=65536):
         self.grid_y = granularity
         self.logscale = logscale
         self.timescale = timescale
         self.max_bs = max_bs
         self.divider = self.ts_dict[timescale]['divider']
         self.label = self.ts_dict[timescale]['label']
+        self.skip_bs = skip_bs
 
         ensure_output_dir(output_dir, force)
         for input_dir in input_dirs:
@@ -166,7 +167,7 @@ class ClatGrid:
 
 
     # OK we have enough data, construct the grid and populate with interpolations
-    def plot_data(self, output_dir, filename='blob.png',cmap='copper'):
+    def plot_data(self, output_dir, filename='blob.png',cmap='copper',colorbar=False):
         grid = self.fit_to_grid()
         
         fig = plt.figure()
@@ -189,7 +190,8 @@ class ClatGrid:
             #plt.ylim(10**5,10**7)
             plt.ylabel('commit latency - $%s$' % self.label)
         plt.xlabel(r'block size - $2^n$')
-        plt.colorbar(label='relative frequency per blocksize')
+        if colorbar:
+            plt.colorbar(label='relative frequency per blocksize')
         filename = "%s/%s" % (output_dir, filename)
         plt.savefig(filename, dpi=150, orientation='landscape', transparent=False)
         print 'Plotting to %s' % filename
@@ -244,7 +246,7 @@ class ClatGrid:
                     job_fd.write(u'\n')
 
                 # Aggregate data from each dataset
-                if bs <= self.max_bs:
+                if bs <= self.max_bs and bs not in self.skip_bs:
                     self.add_series( int(bs), bs_job['read']['total_ios'], bs_job['read']['clat_ns']['bins'] ) 
 
                 print "I/O size %8d, job %s: %d samples" % (bs, bs_job['jobname'], bs_job['read']['total_ios'])
@@ -316,7 +318,8 @@ if __name__ == "__main__":
         granularity=2000    
     
     grid = ClatGrid(
-        [Path(input_dir) for input_dir in args.input_dirs],
-        Path(args.output_dir), granularity, args.force, args.logscale,
-        args.units, args.max_lat_bs
+        input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
+        output_dir=Path(args.output_dir), granularity=granularity,
+        skip_bs=[int(s) for s in skip_bs], force=args.force,
+        logscape=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
     )
