@@ -21,6 +21,8 @@ spec:
           value: "4"
         - name: JOB_NAME
           value: "ceph-rrc16p16"
+        - name: SUB_PATH
+          value: "bharat"
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -31,7 +33,6 @@ spec:
         resources: {}
         volumeMounts:
         - mountPath: /data
-          subPath: bharat
           name: ceph-pv
       hostNetwork: true
       restartPolicy: OnFailure

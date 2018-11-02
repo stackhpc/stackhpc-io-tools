@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: beegfs-rrc16p16
+  name: beegfs-jobs
 spec:
   backoffLimit: 6
   completions: 16
@@ -19,19 +19,20 @@ spec:
         - name: NUM_JOBS
           value: "4"
         - name: JOB_NAME
-          value: "beegfs-rrc16p16"
+          value: "beegfs-c16p16"
+        - name: SUB_PATH
+          value: "bharat"
         - name: POD_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/brtknr/fio:v3.11.11
-        #imagePullPolicy: Always
+        image: docker.io/brtknr/fio:v3.1
+        imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:
         - mountPath: /data
-          subPath: bharat
           name: beegfs-pv
       hostNetwork: true
       restartPolicy: OnFailure
