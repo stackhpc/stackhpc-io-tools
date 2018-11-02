@@ -1,6 +1,7 @@
 #!/bin/sh
 export DATA_DIR=/data/fio_datafiles/k8s
 export WORK_DIR=/data/$JOB_NAME/$POD_NAME
+mkdir -p $DATA_DIR
 mkdir -p $WORK_DIR
 let i=128
 let lim=16*1024*1024

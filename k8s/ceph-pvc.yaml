@@ -1,7 +1,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: fio-pv-claim
+  name: ceph-pvc
 spec:
   storageClassName: manual
   accessModes:

@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ceph-rrc16p16
+spec:
+  backoffLimit: 6
+  completions: 16
+  parallelism: 16
+  template:
+    metadata:
+      name: fio-pod
+    spec:
+      containers:
+      - name: fio-test
+        args:
+        - /fio_jobfiles/run_fio.sh
+        command:
+        - /bin/sh
+        env:
+        - name: NUM_JOBS
+          value: "4"
+        - name: JOB_NAME
+          value: "ceph-rrc16p16"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: docker.io/brtknr/fio:v3.11
+        #imagePullPolicy: Always
+        resources: {}
+        volumeMounts:
+        - mountPath: /data
+          subPath: bharat
+          name: ceph-pv
+      hostNetwork: true
+      restartPolicy: OnFailure
+      volumes:
+      - name: ceph-pv
+        persistentVolumeClaim:
+          claimName: ceph-pvc
