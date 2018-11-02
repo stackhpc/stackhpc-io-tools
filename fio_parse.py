@@ -16,51 +16,103 @@ import pdb
 class ClatGrid:
     min_x = 0
     max_x = 0
+    min_y = 0.0
     max_y = 0.0
     grid_y = 0
     io_bs = {}
     io_density = {}
+    iops_bs = {}
+    timescale = 'us'
+    logscale = False
     
-    def __init__( self, grid_y, input_dir, output_dir, force):
+    def __init__( self, grid_y, input_dirs, output_dir, force, logscale=False, timescale='us', max_bs=65536):
         self.grid_y = grid_y
-        self.populate(input_dir, output_dir, force)
+        self.logscale = logscale
+        self.timescale = timescale
+        self.max_bs = max_bs
+        ensure_output_dir(output_dir, force)
+        for input_dir in input_dirs:
+            print "Scanning for fio data in %s" % input_dir
+            self.populate(input_dir, output_dir)
         self.plot_data(output_dir)
 
+    # Each series is indexed by the IO size (and the test mode)
+    # Multiple client series are stored independently at this stage
+    # and will be gridded, aggregated and normalised later on.
     def add_series( self, bs, iops_total, clat_data ):
-        # Construct a unit-scaled dict of floating-point IO latencies
+
+        # Paranoia: Check the iops_total matches the sum of all bins
+        if sum(clat_data.values()) != iops_total:
+            print "I/O size %d: sum of histogram bins is %d, expected %d" % (bs, sum(clat_data.values()), iops_total)
+            raise ValueError
+
+        # Construct a dict of floating-point IO latencies
         bs_data = {}
-        iops_sf = float(iops_total)
         for y_str, z_str in clat_data.iteritems():
             y = float(y_str)
+            if self.timescale == 'us':
+                y /= 1000.0
+            elif self.timescale == 'ms':
+                y /= 1000000.0
+            if self.logscale:
+                y = math.log(y, 10)
             z = float(z_str)
-            bs_data[y] = z/iops_sf
+            bs_data[y] = z
+            if self.min_y == 0 or self.min_y > y:
+                self.min_y = y
             if self.max_y < y:
                 self.max_y = y
 
-        # Process the IOs in order to construct IO frequency densities
-        prev_y = 0.0
-        prev_z = 0.0
-        io_density = []
-        for y in sorted(bs_data.keys()):
-            if prev_y != 0.0:
-                z = bs_data[y]
-                delta_y = y - prev_y
-                io_density_y = z / delta_y
-                io_density += [dict(lower=prev_y, upper=y, density=io_density_y)]
-            prev_y = y
-            prev_z = z
-
-        # Update grid-forming metrics
+        # Update grid-boundary metrics
         x = int(math.log(bs, 2))
         if self.min_x == 0 or self.min_x > x:
             self.min_x = x
         if self.max_x < x:
             self.max_x = x
-        self.io_bs[x] = bs_data
-        self.io_density[x] = io_density
 
-    # OK we have enough data, construct the grid and populate with interpolations
-    def plot_data(self, output_dir, filename='blob.png'):
+        # Add the data to any existing data sets for this blocksize
+        if x not in self.io_bs:
+            self.io_bs[x] = []
+            self.iops_bs[x] = 0
+        self.io_bs[x] += [bs_data]
+        self.iops_bs[x] += iops_total
+
+
+    def aggregate_and_normalise( self ):
+        ''' We may have sampled multiple results per blocksize.
+            Generate a weighted normalisation across all readings.
+            This must be done once all results have been added. '''
+
+        # For each blocksize
+        for bs, bs_results in self.io_bs.iteritems():
+            z_total = float(self.iops_bs[bs])
+            io_density = []
+
+            # For each fio result in this blocksize
+            for bs_data in bs_results:
+                result_norm = {}
+                prev_y = 0.0
+
+                # For each datapoint in the result
+                for y in sorted(bs_data.keys()):
+
+                    # Process the IOs in order to construct IO frequency densities
+                    z_norm = bs_data[y] / z_total
+                    delta_y = y - prev_y
+                    io_density_y = z_norm / delta_y
+                    io_density += [dict(lower=prev_y, upper=y, density=io_density_y)]
+                    prev_y = y
+
+            # The generated list of I/O frequency density ranges
+            # is suitable for resampling on a regularised grid
+            self.io_density[bs] = io_density
+
+
+    def fit_to_grid( self ):
+        ''' Once all fio latency histograms have been submitted, 
+            reinterpolate the data to a regular grid spacing
+            to enable aggregation and plotting. '''
+
         bin_y = self.max_y / self.grid_y
 
         # Make coordinate arrays.
@@ -70,12 +122,14 @@ class ClatGrid:
         grid = np.zeros((nrow, ncol), dtype=np.dtype('double'))
         
         # Perform the gridding interpolation
-        for x in sorted(self.io_density.keys()):
+        for x in sorted(self.io_bs.keys()):
             col = x - self.min_x
             io_density = self.io_density[x]
-            col_check = 0.0
+            io_density_check = 0.0          # Paranoia
+            grid_check = 0.0                # Paranoia
             for D in io_density:
                 for row in range(int(math.floor(D['lower'] / bin_y)), nrow):
+
                     grid_y_lower = yi[row]
                     grid_y_upper = grid_y_lower + bin_y
 
@@ -92,8 +146,29 @@ class ClatGrid:
 
                     grid[row, col] += D['density'] * overlap_range / bin_y
 
+                    # Paranoia
+                    grid_check += D['density'] * overlap_range
+
+                # Paranoia
+                io_density_check += D['density']*(D['upper']-D['lower'])
+
+            # Paranoia
+            if io_density_check < 0.999 or io_density_check > 1.001 or grid_check < 0.999 or grid_check > 1.001:
+                print "CHECK FAILED: blocksize %d cumulative density %f cumulative grid %f" % (2**x, io_density_check, grid_check)
+                raise ValueError
+
+        return grid
+
+
+    # OK we have enough data, construct the grid and populate with interpolations
+    def plot_data(self, output_dir, filename='blob.png'):
+
+        self.aggregate_and_normalise()
+        grid = self.fit_to_grid()
+
         # Find maximum value on Grid
         max_z = grid.max()
+        nrow, ncol = grid.shape
 
         # Set empty bins to NaN to ensure they do not get plotted
         for row in range(nrow):
@@ -105,28 +180,28 @@ class ClatGrid:
         palette = plt.matplotlib.colors.LinearSegmentedColormap('jet3', plt.cm.datad['jet'], 2048)
         palette.set_under(alpha=0.0) 
 
-        extent = (self.min_x-0.5, self.max_x+0.5, 1.0, self.max_y)
+        extent = (self.min_x-0.5, self.max_x+0.5, self.min_y, self.max_y)
         plt.imshow(grid, extent=extent, cmap=palette, origin='lower', vmin=0.0, vmax=max_z, aspect='auto', interpolation='none')
-        plt.ylim(10**5,10**7)
-        plt.ylabel('commit latency - $ns$')
-        plt.xlabel('block size - $10^n$')
-        plt.colorbar(label='relative frequency per blocksize')
+        if self.logscale:
+            #plt.ylim(10**5,10**7)
+            plt.ylabel('Logarithmic commit latency - $%s$' % self.timescale)
+        else:
+            plt.ylim(10**5,10**7)
+            plt.ylabel('commit latency - $%s$' % self.timescale)
+        plt.xlabel(r'block size - $2^n$')
         filename = "%s/%s" % (output_dir, filename)
         plt.savefig(filename, dpi=150, orientation='landscape', transparent=False)
         print 'Plotting to %s' % filename
 
-    def populate(self, input_dir, output_dir, force):
+    def populate(self, input_dir, output_dir):
         # For each blocksize found, emit data from each listed job
-        # FIXME: if we forced the creation of the result dir, zap the contents here.
-        # FIXME: need to incorporate hostname
+        # FIXME: need to incorporate hostname and dataset name in the results
         # Emit bandwidth data points in column format
-        self.fio_file_list = fio_file_list = get_fio_file_list(input_dir)
-        ensure_output_dir(output_dir, force)
-        self.fio_results = fio_results = get_fio_results(fio_file_list)
-        self.bs_list = bs_list = sorted(fio_results.keys())
+        fio_file_list = get_fio_file_list(input_dir)
+        fio_results = get_fio_results(fio_file_list)
+        bs_list = sorted(fio_results.keys())
         for bs in bs_list:
             for bs_job in fio_results[bs]['jobs']:
-                print "I/O size %d job %s" % (bs, bs_job['jobname'])
 
                 # Read and write bandwidth as a function of I/O size
                 with open(output_dir + '/' + bs_job['jobname'] + '-bandwidth.dat', 'a+') as job_fd:
@@ -164,10 +239,12 @@ class ClatGrid:
                     job_fd.write('\n')
 
                 # Aggregate data from each dataset
-                if bs <= 65536:
+                if bs <= self.max_bs:
                     self.add_series( int(bs), bs_job['read']['total_ios'], bs_job['read']['clat_ns']['bins'] ) 
+
+                print "I/O size %8d, job %s: %d samples" % (bs, bs_job['jobname'], bs_job['read']['total_ios'])
             
-        print "Parsed data for I/O sizes %s" % (bs_list)
+        print "Aggregated data for %d I/Os, max latency %f %s" % (sum(self.iops_bs.values()), self.max_y if not self.logscale else 10**self.max_y, self.timescale)
 
 def get_fio_file_list(input_dir):
     # List JSON files in the fio input directory
@@ -221,16 +298,30 @@ def get_fio_results(fio_file_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse fio output')
-    parser.add_argument('--input-dir', metavar='<path>',
-        dest='input_dir', type=str, required=True,
-        help='Directory of output files from fio in json+ format')
+    parser.add_argument('-L',
+        dest="logscale", action='store_const', const=True, required=False,
+        help='Logarithmic axes for latency plots')
+    parser.add_argument('-f',
+        dest="force", action='store_const', const=True, required=False,
+        help='Overwrite previous output data, if existing')
     parser.add_argument('--output-dir', metavar='<path>',
         dest="output_dir", type=str, required=True,
         help='Directory for result data for plotting')
-    parser.add_argument('--force',
-        dest="force", action='store_const', const=True, required=False,
-        help='Overwrite previous output data, if existing')
+    parser.add_argument('--units', metavar='<ns|us|ms>',
+        dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
+        help='Latency time units')
+    parser.add_argument('--max-lat-bs', metavar='<io-size>',
+        dest="max_lat_bs", type=int, default=65536,
+        help='Maximum I/O size to include in latency plots')
+    parser.add_argument('input_dirs', nargs='+',
+        help='Directory of output files from fio in json+ format')
 
     args = parser.parse_args()
 
-    grid = ClatGrid(2000, args.input_dir, args.output_dir, args.force)
+    # Logarithmic plots fare better with more granular bins
+    if args.logscale:
+        granularity=100
+    else:
+        grit_units=2000
+
+    grid = ClatGrid(granularity, args.input_dirs, args.output_dir, args.force, args.logscale, args.units, args.max_lat_bs)
