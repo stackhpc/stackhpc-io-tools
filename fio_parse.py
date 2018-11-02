@@ -13,8 +13,6 @@ import os
 import time
 import pdb
 
-plt.matplotlib.use('Agg')
-
 class ClatGrid:
     min_x = 0
     max_x = 0
@@ -26,16 +24,24 @@ class ClatGrid:
     iops_bs = {}
     timescale = 'us'
     logscale = False
+    ts_dict = {
+        'us': {'divider': 10**3, 'label':'\mu s'},
+        'ms': {'divider': 10**6, 'label':'m s'},
+    }
     
-    def __init__( self, grid_y, input_dirs, output_dir, force, logscale=False, timescale='us', max_bs=65536):
-        self.grid_y = grid_y
+    def __init__( self, input_dirs, output_dir, granularity, force, logscale=False, timescale='us', max_bs=65536):
+        self.grid_y = granularity
         self.logscale = logscale
         self.timescale = timescale
         self.max_bs = max_bs
+        self.divider = self.ts_dict[timescale]['divider']
+        self.label = self.ts_dict[timescale]['label']
+
         ensure_output_dir(output_dir, force)
         for input_dir in input_dirs:
             print "Scanning for fio data in %s" % input_dir
-            self.populate(input_dir, output_dir)
+            self.populate(input_dir, output_dir)            
+        self.aggregate_and_normalise()
         self.plot_data(output_dir)
 
     # Each series is indexed by the IO size (and the test mode)
@@ -52,10 +58,7 @@ class ClatGrid:
         bs_data = {}
         for y_str, z_str in clat_data.iteritems():
             y = float(y_str)
-            if self.timescale == 'us':
-                y /= 1000.0
-            elif self.timescale == 'ms':
-                y /= 1000000.0
+            y /= self.divider
             if self.logscale:
                 y = math.log(y, 10)
             z = float(z_str)
@@ -163,11 +166,10 @@ class ClatGrid:
 
 
     # OK we have enough data, construct the grid and populate with interpolations
-    def plot_data(self, output_dir, filename='blob.png'):
-
-        self.aggregate_and_normalise()
+    def plot_data(self, output_dir, filename='blob.png',cmap='copper'):
         grid = self.fit_to_grid()
-
+        
+        fig = plt.figure()
         # Find maximum value on Grid
         max_z = grid.max()
         nrow, ncol = grid.shape
@@ -178,23 +180,20 @@ class ClatGrid:
                 if grid[row, col] == 0.0:
                     grid[row, col] = np.nan
 
-        # Select a colour palette
-        palette = plt.matplotlib.colors.LinearSegmentedColormap('jet3', plt.cm.datad['jet'], 2048)
-        palette.set_under(alpha=0.0) 
-
         extent = (self.min_x-0.5, self.max_x+0.5, self.min_y, self.max_y)
-        plt.imshow(grid, extent=extent, cmap=palette, origin='lower', vmin=0.0, vmax=max_z, aspect='auto', interpolation='none')
+        plt.imshow(grid, extent=extent, cmap=cmap, origin='lower', vmin=0.0, vmax=max_z, aspect='auto', interpolation='none')
         if self.logscale:
-            #plt.ylim(10**5,10**7)
-            plt.ylabel('Logarithmic commit latency - $%s$' % self.timescale)
+            #plt.ylim(5,7)
+            plt.ylabel('log (commit latency) - $%s$' % self.label)
         else:
-            plt.ylim(10**5,10**7)
-            plt.ylabel('commit latency - $%s$' % self.timescale)
+            #plt.ylim(10**5,10**7)
+            plt.ylabel('commit latency - $%s$' % self.label)
         plt.xlabel(r'block size - $2^n$')
         plt.colorbar(label='relative frequency per blocksize')
         filename = "%s/%s" % (output_dir, filename)
         plt.savefig(filename, dpi=150, orientation='landscape', transparent=False)
         print 'Plotting to %s' % filename
+        return fig
 
     def populate(self, input_dir, output_dir):
         # For each blocksize found, emit data from each listed job
@@ -207,13 +206,15 @@ class ClatGrid:
             for bs_job in fio_results[bs]['jobs']:
 
                 # Read and write bandwidth as a function of I/O size
-                with open(output_dir + '/' + bs_job['jobname'] + '-bandwidth.dat', 'a+') as job_fd:
-                    job_fd.write('{0:8} {1:8} {2:8}\n'
+                fpath = output_dir/(bs_job['jobname']+'-bandwidth.dat')
+                with fpath.open('a+') as job_fd:
+                    job_fd.write(u'{0:8}\t{1:8}\t{2:8}\n'
                         .format(bs, bs_job['read']['bw'], bs_job['write']['bw']))
 
                 # IOPS and IO latency percentiles as a function of I/O size
-                with open(output_dir + '/' + bs_job['jobname'] + '-read-iops-latency.dat', 'a+') as job_fd:
-                    job_fd.write('{:8},{:8},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'
+                fpath = output_dir/(bs_job['jobname']+'-read-iops-latency.dat')
+                with fpath.open('a+') as job_fd:
+                    job_fd.write(u'{:8}\t{:8}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'
                         .format(bs, bs_job['read']['iops'],
                             bs_job['read']['clat_ns']['percentile']["1.000000"],
                             bs_job['read']['clat_ns']['percentile']["5.000000"],
@@ -234,12 +235,13 @@ class ClatGrid:
                             bs_job['read']['clat_ns']['percentile']["99.990000"]))
 
                 # Write I/O completion latencies as a datafile of x y z datapoints
-                with open(output_dir + '/' + bs_job['jobname'] + '-read-clat.dat', 'a+') as job_fd:
+                fpath = output_dir/(bs_job['jobname']+'-read-clat.dat')
+                with fpath.open('a+') as job_fd:
                     # Need to transform string keys into integer to sort
                     for bin_ns in sorted([int(x) for x in bs_job['read']['clat_ns']['bins'].keys()]):
                         bin_freq = bs_job['read']['clat_ns']['bins'][str(bin_ns)]
-                        job_fd.write('{:8} {:10} {:8}\n'.format(math.log(bs,2), bin_ns, bin_freq))
-                    job_fd.write('\n')
+                        job_fd.write(u'{:8}\t{:10}\t{:8}\n'.format(math.log(bs,2), bin_ns, bin_freq))
+                    job_fd.write(u'\n')
 
                 # Aggregate data from each dataset
                 if bs <= self.max_bs:
@@ -252,26 +254,27 @@ class ClatGrid:
 def get_fio_file_list(input_dir):
     # List JSON files in the fio input directory
     try:
-        return [input_dir + '/' + f for f in os.listdir(input_dir)]
+        return list(input_dir.iterdir())
     except OSError as E:
         print "Could not access input directory %s: %s" % (input_dir, os.strerror(E.errno))
         os.abort()
 
 def ensure_output_dir(output_dir, force):
     # Check the status of the output directory
-    path = Path(output_dir)
-    if force:
-        print "Overwriting output data in %s" % (output_dir)
-    else:
-        print "Output directory %s already exists: use --force to overwrite it" % (output_dir)
-    path.mkdir(parents=True, exist_ok=force)
-    output_file_list = list(path.iterdir())
+    output_dir.mkdir(parents=True, exist_ok=force)
+    for p in output_dir.iterdir():
+        if force:
+            print "Deleting existing output data %s in output directory" % (p)
+            p.unlink()
+        else:
+            print "Output directory %s is not empty: use --force to overwrite it" % (output_dir)
+            os.abort()
 
 def get_fio_results(fio_file_list):
     # Read in and parse the data files
     fio_results = {}
     for fio_file in fio_file_list:
-        with open(fio_file, 'r') as fio_fd:
+        with fio_file.open('r') as fio_fd:
             try:
                 fio_run_data = json.load(fio_fd)
                 test_bs = int(fio_run_data['global options']['bs'])
@@ -306,10 +309,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Logarithmic plots fare better with more granular bins
+    # Logarithmic plots fare better with less granular bins
     if args.logscale:
-        granularity=100
+        granularity=200
     else:
-        granularity=2000
-
-    grid = ClatGrid(granularity, args.input_dirs, args.output_dir, args.force, args.logscale, args.units, args.max_lat_bs)
+        granularity=2000    
+    
+    grid = ClatGrid(
+        [Path(input_dir) for input_dir in args.input_dirs],
+        Path(args.output_dir), granularity, args.force, args.logscale,
+        args.units, args.max_lat_bs
+    )
