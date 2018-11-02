@@ -2,18 +2,18 @@
 # Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
 
 # .config/matplotlib/matplotlibrc line backend : Agg
-import matplotlib
-matplotlib.use_backend('Agg')
+import matplotlib.pyplot as plt
+from pathlib2 import Path
+import numpy as np
 import argparse
 import errno
 import json
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import time
-
 import pdb
+
+plt.matplotlib.use('Agg')
 
 class ClatGrid:
     min_x = 0
@@ -259,28 +259,13 @@ def get_fio_file_list(input_dir):
 
 def ensure_output_dir(output_dir, force):
     # Check the status of the output directory
-    output_dir_present = True
-    try:
-        output_file_list = os.listdir(output_dir)
-        if force:
-            print "Overwriting output data in %s" % (output_dir)
-        else:
-            print "Output directory %s already exists: use --force to overwrite it" % (output_dir)
-            os.abort()
-    except OSError as E:
-        if E.errno == errno.ENOENT:
-            output_dir_present = False
-            pass
-        else:
-            print "Output directory %s not accessible: %s" % (output_dir, os.strerror(E.errno))
-            os.abort()
-    # Generate the output directory if not already present
-    try:
-        if not output_dir_present:
-            os.mkdir(output_dir, 0755)
-    except OSError as E:
-        print "Output directory %s could not be created: %s" % (args.output_dir, os.strerror(E.errno))
-        os.abort()
+    path = Path(output_dir)
+    if force:
+        print "Overwriting output data in %s" % (output_dir)
+    else:
+        print "Output directory %s already exists: use --force to overwrite it" % (output_dir)
+    path.mkdir(parents=True, exist_ok=force)
+    output_file_list = list(path.iterdir())
 
 def get_fio_results(fio_file_list):
     # Read in and parse the data files
@@ -316,7 +301,7 @@ if __name__ == "__main__":
     parser.add_argument('-M', '--max-lat-bs', metavar='<io-size>',
         dest="max_lat_bs", type=int, default=65536,
         help='Maximum I/O size to include in latency plots')
-    parser.add_argument('-i', 'input_dirs', nargs='+',
+    parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
         help='Directory of output files from fio in json+ format')
 
     args = parser.parse_args()
@@ -325,6 +310,6 @@ if __name__ == "__main__":
     if args.logscale:
         granularity=100
     else:
-        grit_units=2000
+        granularity=2000
 
     grid = ClatGrid(granularity, args.input_dirs, args.output_dir, args.force, args.logscale, args.units, args.max_lat_bs)
