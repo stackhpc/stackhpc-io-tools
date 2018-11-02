@@ -2,6 +2,8 @@
 # Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
 
 # .config/matplotlib/matplotlibrc line backend : Agg
+import matplotlib
+matplotlib.use_backend('Agg')
 import argparse
 import errno
 import json
@@ -189,6 +191,7 @@ class ClatGrid:
             plt.ylim(10**5,10**7)
             plt.ylabel('commit latency - $%s$' % self.timescale)
         plt.xlabel(r'block size - $2^n$')
+        plt.colorbar(label='relative frequency per blocksize')
         filename = "%s/%s" % (output_dir, filename)
         plt.savefig(filename, dpi=150, orientation='landscape', transparent=False)
         print 'Plotting to %s' % filename
@@ -210,7 +213,7 @@ class ClatGrid:
 
                 # IOPS and IO latency percentiles as a function of I/O size
                 with open(output_dir + '/' + bs_job['jobname'] + '-read-iops-latency.dat', 'a+') as job_fd:
-                    job_fd.write('{:8} {:8} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'
+                    job_fd.write('{:8},{:8},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'
                         .format(bs, bs_job['read']['iops'],
                             bs_job['read']['clat_ns']['percentile']["1.000000"],
                             bs_job['read']['clat_ns']['percentile']["5.000000"],
@@ -298,22 +301,22 @@ def get_fio_results(fio_file_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse fio output')
-    parser.add_argument('-L',
+    parser.add_argument('-L', '--logscale',
         dest="logscale", action='store_const', const=True, required=False,
         help='Logarithmic axes for latency plots')
-    parser.add_argument('-f',
+    parser.add_argument('-f', '--force',
         dest="force", action='store_const', const=True, required=False,
         help='Overwrite previous output data, if existing')
-    parser.add_argument('--output-dir', metavar='<path>',
+    parser.add_argument('-o','--output-dir', metavar='<path>',
         dest="output_dir", type=str, required=True,
         help='Directory for result data for plotting')
-    parser.add_argument('--units', metavar='<ns|us|ms>',
+    parser.add_argument('-u', '--units', metavar='<ns|us|ms>',
         dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
         help='Latency time units')
-    parser.add_argument('--max-lat-bs', metavar='<io-size>',
+    parser.add_argument('-M', '--max-lat-bs', metavar='<io-size>',
         dest="max_lat_bs", type=int, default=65536,
         help='Maximum I/O size to include in latency plots')
-    parser.add_argument('input_dirs', nargs='+',
+    parser.add_argument('-i', 'input_dirs', nargs='+',
         help='Directory of output files from fio in json+ format')
 
     args = parser.parse_args()
