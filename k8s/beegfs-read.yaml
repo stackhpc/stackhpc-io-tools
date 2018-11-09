@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: beegfs-jobs
+  name: beegfs-read
 spec:
   backoffLimit: 6
   completions: 16
@@ -16,12 +16,14 @@ spec:
         command:
         - /bin/sh
         env:
+        - name: FIO_JOB
+          value: "read"
+        - name: FIO_RW
+          value: "randread"
         - name: NUM_JOBS
           value: "4"
         - name: JOB_NAME
-          value: "beegfs-c16p16"
-        - name: SUB_PATH
-          value: "bharat"
+          value: "beegfs-c16p16-randwrite"
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -38,5 +40,8 @@ spec:
       restartPolicy: OnFailure
       volumes:
       - name: beegfs-pv
-        persistentVolumeClaim:
-          claimName: beegfs-pvc
+        hostPath:
+          path: /mnt/beegfs/bharat
+      #- name: beegfs-pv
+      #  persistentVolumeClaim:
+      #    claimName: beegfs-pvc
