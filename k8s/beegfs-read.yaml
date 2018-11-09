@@ -22,8 +22,10 @@ spec:
           value: "randread"
         - name: NUM_JOBS
           value: "4"
+        - name: NUM_PODS
+          value: "16"
         - name: JOB_NAME
-          value: "beegfs-c16p16-randwrite"
+          value: "beegfs-16-randread"
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -37,7 +39,7 @@ spec:
         - mountPath: /data
           name: beegfs-pv
       hostNetwork: true
-      restartPolicy: OnFailure
+      restartPolicy: Never
       volumes:
       - name: beegfs-pv
         hostPath:

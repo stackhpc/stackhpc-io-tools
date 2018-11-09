@@ -2,7 +2,7 @@
 
 export FIO_VERSION=3.1
 export FIO_TAG=v${FIO_VERSION}
-export K8S_JOBSPEC=k8s/beegfs-write.yaml
+export K8S_JOBSPEC=k8s/beegfs-read.yaml
 
 kubectl delete -f ${K8S_JOBSPEC}
 
