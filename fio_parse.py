@@ -29,7 +29,7 @@ class ClatGrid:
         'ms': {'divider': 10**6, 'label':'m s'},
     }
     
-    def __init__( self, input_dirs, output_dir, granularity, force, skip_bs=[], logscale=False, timescale='us', max_bs=65536):
+    def __init__( self, input_dirs, output_dir, granularity, force, mode, skip_bs=[], logscale=False, timescale='us', max_bs=65536):
         self.grid_y = granularity
         self.logscale = logscale
         self.timescale = timescale
@@ -37,13 +37,15 @@ class ClatGrid:
         self.divider = self.ts_dict[timescale]['divider']
         self.label = self.ts_dict[timescale]['label']
         self.skip_bs = skip_bs
-
+        self.input_dirs = input_dirs
+        self.output_dir = output_dir
+        self.mode = mode
+        
         ensure_output_dir(output_dir, force)
         for input_dir in input_dirs:
             print "Scanning for fio data in %s" % input_dir
-            self.populate(input_dir, output_dir)            
+            self.populate(input_dir, output_dir)
         self.aggregate_and_normalise()
-        self.plot_data(output_dir)
 
     # Each series is indexed by the IO size (and the test mode)
     # Multiple client series are stored independently at this stage
@@ -208,48 +210,48 @@ class ClatGrid:
             for bs_job in fio_results[bs]['jobs']:
 
                 # Read and write bandwidth as a function of I/O size
-                fpath = output_dir/(bs_job['jobname']+'-bandwidth.dat')
+                fpath = output_dir/(self.mode+'-bandwidth.dat')
                 with fpath.open('a+') as job_fd:
                     job_fd.write(u'{0:8}\t{1:8}\t{2:8}\n'
-                        .format(bs, bs_job['read']['bw'], bs_job['write']['bw']))
+                        .format(bs, bs_job[self.mode]['bw'], bs_job['write']['bw']))
 
                 # IOPS and IO latency percentiles as a function of I/O size
-                fpath = output_dir/(bs_job['jobname']+'-read-iops-latency.dat')
+                fpath = output_dir/(self.mode+'-iops-latency.dat')
                 with fpath.open('a+') as job_fd:
                     job_fd.write(u'{:8}\t{:8}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'
-                        .format(bs, bs_job['read']['iops'],
-                            bs_job['read']['clat_ns']['percentile']["1.000000"],
-                            bs_job['read']['clat_ns']['percentile']["5.000000"],
-                            bs_job['read']['clat_ns']['percentile']["10.000000"],
-                            bs_job['read']['clat_ns']['percentile']["20.000000"],
-                            bs_job['read']['clat_ns']['percentile']["30.000000"],
-                            bs_job['read']['clat_ns']['percentile']["40.000000"],
-                            bs_job['read']['clat_ns']['percentile']["50.000000"],
-                            bs_job['read']['clat_ns']['percentile']["60.000000"],
-                            bs_job['read']['clat_ns']['percentile']["70.000000"],
-                            bs_job['read']['clat_ns']['percentile']["80.000000"],
-                            bs_job['read']['clat_ns']['percentile']["90.000000"],
-                            bs_job['read']['clat_ns']['percentile']["95.000000"],
-                            bs_job['read']['clat_ns']['percentile']["99.000000"],
-                            bs_job['read']['clat_ns']['percentile']["99.500000"],
-                            bs_job['read']['clat_ns']['percentile']["99.900000"],
-                            bs_job['read']['clat_ns']['percentile']["99.950000"],
-                            bs_job['read']['clat_ns']['percentile']["99.990000"]))
+                        .format(bs, bs_job[self.mode]['iops'],
+                            bs_job[self.mode]['clat_ns']['percentile']["1.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["5.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["10.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["20.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["30.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["40.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["50.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["60.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["70.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["80.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["90.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["95.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["99.000000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["99.500000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["99.900000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["99.950000"],
+                            bs_job[self.mode]['clat_ns']['percentile']["99.990000"]))
 
                 # Write I/O completion latencies as a datafile of x y z datapoints
-                fpath = output_dir/(bs_job['jobname']+'-read-clat.dat')
+                fpath = output_dir/(self.mode+'-clat.dat')
                 with fpath.open('a+') as job_fd:
                     # Need to transform string keys into integer to sort
-                    for bin_ns in sorted([int(x) for x in bs_job['read']['clat_ns']['bins'].keys()]):
-                        bin_freq = bs_job['read']['clat_ns']['bins'][str(bin_ns)]
+                    for bin_ns in sorted([int(x) for x in bs_job[self.mode]['clat_ns']['bins'].keys()]):
+                        bin_freq = bs_job[self.mode]['clat_ns']['bins'][str(bin_ns)]
                         job_fd.write(u'{:8}\t{:10}\t{:8}\n'.format(math.log(bs,2), bin_ns, bin_freq))
                     job_fd.write(u'\n')
 
                 # Aggregate data from each dataset
                 if bs <= self.max_bs and bs not in self.skip_bs:
-                    self.add_series( int(bs), bs_job['read']['total_ios'], bs_job['read']['clat_ns']['bins'] ) 
+                    self.add_series( int(bs), bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins'] ) 
 
-                print "I/O size %8d, job %s: %d samples" % (bs, bs_job['jobname'], bs_job['read']['total_ios'])
+                print "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios'])
             
         print "Aggregated data for %d I/Os, max latency %f %s" % (sum(self.iops_bs.values()), self.max_y if not self.logscale else 10**self.max_y, self.timescale)
 
@@ -300,6 +302,9 @@ if __name__ == "__main__":
     parser.add_argument('-o','--output-dir', metavar='<path>',
         dest="output_dir", type=str, required=True,
         help='Directory for result data for plotting')
+    parser.add_argument('-m','--mode', metavar='<read|write>',
+        dest="output_dir", type=str, required=True,
+        help='Mode to extract from json')    
     parser.add_argument('-u', '--units', metavar='<ns|us|ms>',
         dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
         help='Latency time units')
@@ -319,7 +324,7 @@ if __name__ == "__main__":
     
     grid = ClatGrid(
         input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
-        output_dir=Path(args.output_dir), granularity=granularity,
+        output_dir=Path(args.output_dir), granularity=granularity, mode=args.mode,
         skip_bs=[int(s) for s in skip_bs], force=args.force,
         logscape=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
     )
