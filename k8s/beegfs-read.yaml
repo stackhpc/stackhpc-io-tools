@@ -44,6 +44,3 @@ spec:
       - name: beegfs-pv
         hostPath:
           path: /mnt/beegfs/bharat
-      #- name: beegfs-pv
-      #  persistentVolumeClaim:
-      #    claimName: beegfs-pvc
