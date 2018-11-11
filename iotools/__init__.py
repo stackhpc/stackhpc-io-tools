@@ -1,11 +1,7 @@
-#! /bin/env python
-# Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
-
 # .config/matplotlib/matplotlibrc line backend : Agg
 import matplotlib.pyplot as plt
 from pathlib2 import Path
 import numpy as np
-import argparse
 import errno
 import json
 import math
@@ -290,41 +286,3 @@ def get_fio_results(fio_file_list):
                 print "Skipping %s: data structure could not be parsed" % (fio_file)
                 pass
     return fio_results
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Parse fio output')
-    parser.add_argument('-L', '--logscale',
-        dest="logscale", action='store_const', const=True, required=False,
-        help='Logarithmic axes for latency plots')
-    parser.add_argument('-f', '--force',
-        dest="force", action='store_const', const=True, required=False,
-        help='Overwrite previous output data, if existing')
-    parser.add_argument('-o','--output-dir', metavar='<path>',
-        dest="output_dir", type=str, required=True,
-        help='Directory for result data for plotting')
-    parser.add_argument('-m','--mode', metavar='<read|write>',
-        dest="output_dir", type=str, required=True,
-        help='Mode to extract from json')    
-    parser.add_argument('-u', '--units', metavar='<ns|us|ms>',
-        dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
-        help='Latency time units')
-    parser.add_argument('-M', '--max-lat-bs', metavar='<io-size>',
-        dest="max_lat_bs", type=int, default=65536,
-        help='Maximum I/O size to include in latency plots')
-    parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
-        help='Directory of output files from fio in json+ format')
-
-    args = parser.parse_args()
-
-    # Logarithmic plots fare better with less granular bins
-    if args.logscale:
-        granularity=200
-    else:
-        granularity=2000    
-    
-    grid = ClatGrid(
-        input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
-        output_dir=Path(args.output_dir), granularity=granularity, mode=args.mode,
-        skip_bs=[int(s) for s in skip_bs], force=args.force,
-        logscape=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
-    )
