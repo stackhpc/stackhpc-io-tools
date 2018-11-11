@@ -24,3 +24,6 @@ tag:
 
 apply:
 	kubectl apply -f ${SPEC}
+
+process:
+	fio_parse -o ${OUT} -i ${IN} -m ${MODE} -L -S 128 256

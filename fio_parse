@@ -25,7 +25,9 @@ if __name__ == "__main__":
         dest="max_lat_bs", type=int, default=65536,
         help='Maximum I/O size to include in latency plots')
     parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
-        help='Directory of output files from fio in json+ format')
+        help='Directory of fio result files from fio in json+ format')
+    parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+',
+        help='Block sizes to skip if fio has not processed them properly')
 
     args = parser.parse_args()
 
@@ -38,6 +40,6 @@ if __name__ == "__main__":
     grid = ClatGrid(
         input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
         output_dir=Path(args.output_dir), granularity=granularity, mode=args.mode,
-        skip_bs=[int(s) for s in skip_bs], force=args.force,
+        skip_bs=[int(s) for s in args.skip_bs], force=args.force,
         logscape=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
     )
