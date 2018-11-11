@@ -19,13 +19,13 @@ spec:
         - name: FIO_JOB
           value: "read"
         - name: FIO_RW
-          value: "randread"
+          value: "read"
         - name: NUM_JOBS
           value: "4"
         - name: NUM_PODS
           value: "16"
         - name: JOB_NAME
-          value: "beegfs-16-randread"
+          value: "beegfs-16-read"
         - name: POD_NAME
           valueFrom:
             fieldRef:

@@ -14,10 +14,10 @@ if [ ! -f "$JOB_LOCK" ]; then
   for f in $(ls -I "${JOB_DIR}/*.lock"); do rm -rf $JOB_DIR/$f; done
   touch $JOB_LOCK
 fi
-export RESULT_DIR=$JOB_DIR/$POD_NAME
-mkdir -p $RESULT_DIR
 let bs=0; BS_LOCK=${JOB_DIR}/${bs}.lock; mkdir -p $BS_LOCK
 while [ $(ls $BS_LOCK | wc -l) -lt $NUM_PODS ]; do touch $BS_LOCK/$POD_NAME; usleep 100000; done
+export RESULT_DIR=$JOB_DIR/$POD_NAME
+mkdir -p $RESULT_DIR
 let bs=128; let lim=16*1024*1024
 while [ $bs -le $lim ]; do
   echo $bs

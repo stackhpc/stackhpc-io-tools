@@ -19,13 +19,13 @@ spec:
         - name: FIO_JOB
           value: "write"
         - name: FIO_RW
-          value: "randwrite"
+          value: "write"
         - name: NUM_JOBS
           value: "4"
         - name: NUM_PODS
           value: "16"
         - name: JOB_NAME
-          value: "beegfs-16-randwrite"
+          value: "beegfs-write"
         - name: POD_NAME
           valueFrom:
             fieldRef:

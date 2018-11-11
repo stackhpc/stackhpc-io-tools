@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ceph-read
+  name: ceph-randwrite
 spec:
   backoffLimit: 6
   completions: 16
@@ -17,15 +17,15 @@ spec:
         - /bin/sh
         env:
         - name: FIO_JOB
-          value: "read"
+          value: "write"
         - name: FIO_RW
-          value: "read"
+          value: "randwrite"
         - name: NUM_JOBS
           value: "4"
         - name: NUM_PODS
           value: "16"
         - name: JOB_NAME
-          value: "ceph-read"
+          value: "ceph-randwrite"
         - name: POD_NAME
           valueFrom:
             fieldRef:
