@@ -1,13 +1,11 @@
-# To build the image:
+# To build and push docker image
 
-    sudo docker build . -t brtknr/fio:v3.11.8 && sudo docker push brtknr/fio:v3.11.8
+    make docker
 
-# To start and clean-up fio job on k8s:
+# To deploy k8s job
 
-    kubectl apply -f k8s/
-    kubectl delete -f k8s/
+    make k8s SPEC=k8s/beegfs-read.yaml
 
 # To generate plot:
 
     ./fio_parse.py --input-dir input/fio-2018-10-29-12:03:31/read-random --output-dir output/read-random --force
-
