@@ -25,7 +25,7 @@ spec:
         - name: NUM_PODS
           value: "16"
         - name: JOB_NAME
-          value: "beegfs-16-read"
+          value: "beegfs-read"
         - name: POD_NAME
           valueFrom:
             fieldRef:
