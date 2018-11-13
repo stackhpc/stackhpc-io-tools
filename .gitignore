@@ -1,4 +1,4 @@
 *.pyc
 *.pem
-config
 .ipynb_checkpoints/
+output/
