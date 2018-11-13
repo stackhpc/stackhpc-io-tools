@@ -1,3 +1,7 @@
+# To install
+
+    pip install git+https://github.com/stackhpc/stackhpc-io-tools
+
 # To build and push docker image
 
     make docker

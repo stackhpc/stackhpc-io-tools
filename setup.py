@@ -11,13 +11,13 @@ with open('README.md') as f:
     long_description = f.read()
 
 setup(
-    name='iotools',
-    version=open(os.path.join('iotools', 'VERSION')).read().strip(),
+    name='fiotools',
+    version=open(os.path.join('fiotools', 'VERSION')).read().strip(),
     author='Stig Telfer',
     author_email='stig@stackhpc.com',
-    packages=['iotools', 'iotools.tests'],
-    package_data={'iotools': [os.path.join('tests', 'urls.txt'), 'VERSION']},
-    scripts=['fio_parse'],
+    packages=['fiotools', 'fiotools.tests'],
+    package_data={'fiotools': [os.path.join('tests', 'urls.txt'), 'VERSION']},
+    scripts=['bin/fio_parse'],
     url='https://github.com/stackhpc/stackhpc-io-tools',
     license='Apache (see LICENSE file)',
     description='IO json parser and plotter',
@@ -28,5 +28,5 @@ setup(
         'pandas',
         'numpy',
         ],
-    test_suite='iotools.tests'
+    test_suite='fiotools.tests'
 )

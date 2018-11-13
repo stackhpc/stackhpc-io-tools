@@ -1,5 +1,5 @@
 import unittest
-import iotools
+import fiotools
 
 class Test(unittest.TestCase):
     def setUp(self):
@@ -11,7 +11,7 @@ class Test(unittest.TestCase):
         }
 
     def test_clatgrid(self):
-        grid = iotools.ClatGrid(**self.kwargs)
+        grid = fiotools.ClatGrid(**self.kwargs)
 
 if __name__ == '__main__':
     unittest.main()

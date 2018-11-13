@@ -2,7 +2,7 @@
 # Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
 
 import argparse
-from iotools import ClatGrid
+from fiotools import ClatGrid
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse fio output')
