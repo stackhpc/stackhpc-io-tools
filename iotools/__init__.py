@@ -10,10 +10,10 @@ import time
 import pdb
 
 class ClatGrid:
-    min_x = 0
+    min_x = np.inf
     max_x = 0
-    min_y = 0.0
-    max_y = 0.0
+    min_y = np.inf
+    max_y = 0.
     grid_y = 0
     io_bs = {}
     io_density = {}
@@ -62,17 +62,13 @@ class ClatGrid:
                 y = math.log(y, 10)
             z = float(z_str)
             bs_data[y] = z
-            if self.min_y == 0 or self.min_y > y:
-                self.min_y = y
-            if self.max_y < y:
-                self.max_y = y
+            self.min_y = min(self.min_y, y)
+            self.max_y = max(self.max_y, y)
 
         # Update grid-boundary metrics
         x = int(math.log(bs, 2))
-        if self.min_x == 0 or self.min_x > x:
-            self.min_x = x
-        if self.max_x < x:
-            self.max_x = x
+        self.min_x = min(self.min_x, x)
+        self.max_x = max(self.max_x, x)
 
         # Add the data to any existing data sets for this blocksize
         if x not in self.io_bs:
