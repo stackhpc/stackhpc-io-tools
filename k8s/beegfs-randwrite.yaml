@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: beegfs-randwrite
+spec:
+  backoffLimit: 6
+  completions: 16
+  parallelism: 16
+  template:
+    metadata:
+      name: fio-pod
+    spec:
+      containers:
+      - args:
+        - /fio_jobfiles/run_fio.sh
+        command:
+        - /bin/sh
+        env:
+        - name: FIO_JOB
+          value: "write"
+        - name: FIO_RW
+          value: "randwrite"
+        - name: NUM_JOBS
+          value: "4"
+        - name: NUM_PODS
+          value: "16"
+        - name: JOB_NAME
+          value: "beegfs-randwrite"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: docker.io/brtknr/fio:v3.1
+        imagePullPolicy: Always
+        name: fio-test
+        resources: {}
+        volumeMounts:
+        - mountPath: /data
+          name: beegfs-pv
+      hostNetwork: true
+      restartPolicy: Never
+      volumes:
+      - name: beegfs-pv
+        hostPath:
+          path: /mnt/beegfs/bharat

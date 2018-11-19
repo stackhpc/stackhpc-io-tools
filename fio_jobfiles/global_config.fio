@@ -1,4 +1,4 @@
-; [global]
+[global]
 ; Parameters common to all test environments
 
 ; Ensure that jobs run for a specified time limit, not I/O quantity
@@ -23,3 +23,6 @@ group_reporting=1
 filesize=32g
 size=32g
 filename_format=$jobnum.dat
+
+[${FIO_JOB}]
+rw=${FIO_RW}
