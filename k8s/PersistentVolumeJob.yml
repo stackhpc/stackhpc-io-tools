@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: beegfs-randwrite
+  name: ceph-{{FIO_RW}}
 spec:
   backoffLimit: 6
-  completions: 16
-  parallelism: 16
+  completions: {{NUM_PODS}}
+  parallelism: {{NUM_PODS}}
   template:
     metadata:
       name: fio-pod
@@ -16,31 +16,30 @@ spec:
         command:
         - /bin/sh
         env:
-        - name: FIO_JOB
-          value: "write"
         - name: FIO_RW
-          value: "randwrite"
+          value: "{{FIO_RW}}"
         - name: NUM_JOBS
           value: "4"
         - name: NUM_PODS
-          value: "16"
-        - name: JOB_NAME
-          value: "beegfs-randwrite"
-        - name: POD_NAME
+          value: "{{NUM_PODS}}"
+        - name: FIO_JOB
+          value: "ceph-{{FIO_RW}}"
+        - name: SUB_JOB
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/brtknr/fio:v3.1
+        image: docker.io/stackhpc/fio:v3.1
         imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:
         - mountPath: /data
-          name: beegfs-pv
+          name: ceph-pv
+          subPath: bharat/
       hostNetwork: true
       restartPolicy: Never
       volumes:
-      - name: beegfs-pv
-        hostPath:
-          path: /mnt/beegfs/bharat
+      - name: ceph-pv
+        persistentVolumeClaim:
+          claimName: manila-cephfs-pvc
