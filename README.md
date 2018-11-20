@@ -1,10 +1,20 @@
 # To install
 
+Installation from local files into a local virtualenv:
+
+    virtualenv venv
+    source venv/bin/activate
+    pip install .
+
+Installation direct from the git repo:
+
     pip install git+https://github.com/stackhpc/stackhpc-io-tools
+
+# To run fio locally
 
 # To build and push docker image
 
-    make docker
+    make docker DOCKER_ID=stackhpc
 
 # To deploy k8s job
 
