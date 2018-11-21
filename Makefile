@@ -1,18 +1,24 @@
 .EXPORT_ALL_VARIABLES:
 
+# Tunable parameters - ALL CASES
 SCENARIO ?= ceph
 FIO_RW ?= randread
 NUM_CLIENTS ?= 1
-DATA_PATH ?= data
-DATA_HOSTPATH ?= /mnt/ceph/bharat
-RESULTS_PATH ?= results
-RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
-FIO_JOBFILES ?= fio_jobfiles
 
+# Tunable parameters - if using Kubernetes
+DATA_HOSTPATH ?= /mnt/ceph/bharat
+RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
+
+# Changing the options below is not recommended
+DATA_PATH ?= data
+RESULTS_PATH ?= results
+FIO_JOBFILES ?= fio_jobfiles
 DOCKER_ID ?= stackhpc
 FIO_VERSION ?= 3.1
-FIO_TAG = v${FIO_VERSION}
 FIO_NUM_JOBS ?= 4
+
+# DO NOT CHANGE
+FIO_TAG = v${FIO_VERSION}
 SCENARIO_NAME ?= ${SCENARIO}-${FIO_RW}
 JOB_NAME ?= ${SCENARIO_NAME}-${NUM_CLIENTS}
 
