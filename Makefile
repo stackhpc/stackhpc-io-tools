@@ -1,6 +1,12 @@
 FIO_VERSION ?= 3.1
 FIO_TAG = v${FIO_VERSION}
 DOCKER_ID ?= stackhpc
+NUM_CLIENTS ?= 16
+NUM_JOBS ?= 4
+FIO_RW ?= randread
+FIO_JOB ?= cephfs-${FIO_RW}
+DATA_HOSTPATH ?= /mnt/ceph/bharat/
+RESULT_SUBPATH ?= bharat/results/
 
 all: docker k8s
 

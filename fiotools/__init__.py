@@ -9,7 +9,7 @@ import os
 
 
 class ClatGrid:
-    
+
     min_x = np.inf
     max_x = 0
     min_y = np.inf
@@ -22,8 +22,8 @@ class ClatGrid:
     logscale = False
     tolerance = 0.1
     ts_dict = {
-        'us': {'divider': 10**3, 'label':'\mu s'},
-        'ms': {'divider': 10**6, 'label':'m s'},
+        'us': {'divider': 10**3, 'label': '\mu s'},
+        'ms': {'divider': 10**6, 'label': 'm s'},
     }
 
     def __init__(self, input_dirs, output_dir, granularity, force,
@@ -36,7 +36,7 @@ class ClatGrid:
         self.ts_divider = self.ts_dict[timescale]['divider']
         self.ts_label = self.ts_dict[timescale]['label']
         self.skip_bs = skip_bs
-        self.input_dirs = [Path(input_dir for input_dir in input_dirs)]
+        self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
         self.output_dir = Path(output_dir)
         self.mode = mode
         self.verbose = verbose
@@ -48,20 +48,20 @@ class ClatGrid:
             self.plot_il()
             self.plot_bw()
 
-    def add_series( self, x, iops_total, clat_data ):
+    def add_series(self, x, iops_total, clat_data):
         ''' Each series is indexed by the IO size (and the test mode)
             Multiple client series are stored independently at this stage
             and will be gridded, aggregated and normalised later on. '''
-        
+
         # Paranoia: Check the iops_total matches the sum of all bins
         if sum(clat_data.values()) != iops_total:
-            raise ValueError("I/O size %d: sum of histogram bins is %d, expected %d" % (bs, sum(clat_data.values()), iops_total))
+            raise ValueError(
+                "I/O size %d: sum of histogram bins is %d, expected %d" %
+                (x, sum(clat_data.values()), iops_total))
         # Construct a dict of floating-point IO latencies
         bs_data = {}
         for y_str, z_str in clat_data.iteritems():
             y = float(y_str)/self.ts_divider
-            #if self.logscale:
-            #    y = math.log(y, 10)
             z = float(z_str)
             bs_data[y] = z
             self.min_y = min(self.min_y, y)
@@ -87,11 +87,14 @@ class ClatGrid:
                 prev_y = 0
                 # For each datapoint in the result
                 for y in sorted(bs_data.keys()):
-                    # Process the IOs in order to construct IO frequency densities
+                    # Process the IOs in order to construct
+                    # IO frequency densities
                     z_norm = bs_data[y] / z_total
                     delta_y = y - prev_y
                     io_density_y = z_norm / delta_y
-                    io_density += [{'lower': prev_y, 'upper': y, 'density': io_density_y}]
+                    io_density += [{'lower': prev_y,
+                                    'upper': y,
+                                    'density': io_density_y}]
                     prev_y = y
             # The generated list of I/O frequency density ranges
             # is suitable for resampling on a regularised grid
@@ -100,9 +103,13 @@ class ClatGrid:
         # to enable aggregation and plotting.
         # Make coordinate arrays.
         self.grid_x = self.max_x - self.min_x + 1
-        self.grid_X = np.linspace(self.min_x - 0.5, self.max_x + 0.5, self.grid_x + 1)
+        self.grid_X = np.linspace(self.min_x - 0.5,
+                                  self.max_x + 0.5,
+                                  self.grid_x + 1)
         if self.logscale:
-            self.grid_Y = np.logspace(np.log10(self.min_y), np.log10(self.max_y), self.grid_y)
+            self.grid_Y = np.logspace(np.log10(self.min_y),
+                                      np.log10(self.max_y),
+                                      self.grid_y)
         else:
             self.grid_Y = np.linspace(self.min_y, self.max_y, self.grid_y)
         grid = np.zeros((self.grid_y, self.grid_x), dtype=np.dtype('double'))
@@ -111,17 +118,17 @@ class ClatGrid:
             col = log2_bs - self.min_x
             io_density_check = 0.0          # Paranoia
             grid_check = 0.0                # Paranoia
+            grid_y_lower = 0.0
             for D in io_density:
                 # for row in range(int(math.floor(D['lower'] / bin_y)), nrow):
                 for row, grid_y_lower in enumerate(self.grid_Y[:-1]):
-                    grid_y_lower = self.grid_Y[row]
                     grid_y_upper = self.grid_Y[row+1]
-                    bin_y = grid_y_upper - grid_y_lower
                     # Non-overlap: below or above?
                     if grid_y_upper < D['lower']:
                         continue
                     if grid_y_lower > D['upper']:
                         break
+                    bin_y = grid_y_upper - grid_y_lower
                     # Determine the extent of overlap
                     overlap_lower = max(grid_y_lower, D['lower'])
                     overlap_upper = min(grid_y_upper, D['upper'])
@@ -132,22 +139,25 @@ class ClatGrid:
                 # Paranoia
                 io_density_check += D['density']*(D['upper'] - D['lower'])
             # Paranoia
-            if abs(io_density_check - 1) > self.tolerance or abs(grid_check - 1) > self.tolerance:
-                raise ValueError("CHECK FAILED: blocksize %d cumulative density %f cumulative grid %f" % (2**log2_bs, io_density_check, grid_check))
+            if (abs(io_density_check - 1) > self.tolerance or
+                    abs(grid_check - 1) > self.tolerance):
+                raise ValueError(
+                    "CHECK FAILED: blocksize %d cumulative density %f cumulative grid %f"
+                    % (2**log2_bs, io_density_check, grid_check))
         # Normalize grid
         self.grid = grid/grid.max()
         # Set empty bins to NaN to ensure they do not get plotted
         self.grid[grid == 0.0] = np.nan
 
     def plot_cl(self, xlim=None, ylim=None):
-        fig, ax = plt.subplots(figsize=(10,8))
+        fig, ax = plt.subplots(figsize=(10, 8))
         legend = sorted(set(self.ildf.index))
-        if xlim == None:
-            xlim = [self.min_x,self.max_x]
-        if ylim == None:
-            ylim = [self.min_y,self.max_y]        
+        if xlim is None:
+            xlim = [0, self.cldf['freq'].max()]
+        if ylim is None:
+            ylim = [self.min_y, self.max_y]        
         ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(legend))])        
-        self.cldf.groupby(['log2_bs','clat'])['freq'] \
+        self.cldf.groupby(['log2_bs', 'clat'])['freq'] \
             .mean().reset_index().set_index('log2_bs').groupby('log2_bs') \
             .plot(x='freq',y='clat',ax=ax,loglog=self.logscale, linewidth=1, xlim=xlim, ylim=ylim)
         ax.legend(legend, title='block size ($2^n$)')
@@ -156,20 +166,26 @@ class ClatGrid:
         plt.savefig(str(self.output_dir/'commit-latency-freq-dist.png'))
         return fig, ax
 
-    def plot_bw(self):
-        fig, ax = plt.subplots(figsize=(10,8))
-        pd.concat([pd.Series(row, name=i) for i,row in self.bwdf['bw']
-                   .groupby(self.bwdf.index).apply(list).iteritems()], axis=1).boxplot(ax = ax)
+    def plot_bw(self, kind='stacked'):
+        fig, ax = plt.subplots(figsize=(10, 8))
+        if kind == 'boxplot':
+            pd.concat([pd.Series(row, name=i) for i, row in self.bwdf['bw']
+                       .groupby(self.bwdf.index).apply(list)
+                       .iteritems()], axis=1).boxplot(ax=ax)
+        elif kind == 'stacked':
+            pd.concat([pd.Series(row, name=i) for i, row in self.bwdf['bw']
+                       .groupby(self.bwdf.index).apply(list)
+                       .iteritems()], axis=1).plot(ax=ax, stacked=True)
         ax.set_xlabel('block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($KB/s$)' % self.mode)
-        plt.savefig(str(self.output_dir/'blocksize-vs-bandwidth.png'))      
+        plt.savefig(str(self.output_dir/'blocksize-vs-bandwidth-%s.png'))
         return fig, ax
     
     def plot_il(self, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
         fig, ax = plt.subplots(figsize=(10,8))
         if xlim == None:
             xlim = [self.min_x,self.max_x]
-        if ylim == None:
+        if ylim == None:    
             ylim = [self.min_y,self.max_y]
         plt.pcolor(self.grid_X, self.grid_Y, self.grid, cmap=cmap, vmin=0.0, vmax=1.0)
         self.ildf[percentiles] \
@@ -248,10 +264,10 @@ def get_fio_results(fio_file_list):
                 fio_run_data = json.load(fio_fd)
                 test_bs = int(fio_run_data['global options']['bs'])
                 fio_results[test_bs] = fio_run_data
-            except ValueError as E:
+            except ValueError:
                 print "Skipping %s: could not be parsed as JSON" % (fio_file)
                 pass
-            except KeyError as E:
+            except KeyError:
                 print "Skipping %s: data structure could not be parsed" % (fio_file)
                 pass
     return fio_results

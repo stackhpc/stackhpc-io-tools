@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: beegfs-{{FIO_RW}}
+  name: {{FIO_JOB}}
 spec:
   backoffLimit: 6
-  completions: {{NUM_PODS}}
-  parallelism: {{NUM_PODS}}
+  completions: {{NUM_CLIENTS}}
+  parallelism: {{NUM_CLIENTS}}
   template:
     metadata:
       name: fio-pod
@@ -19,27 +19,32 @@ spec:
         - name: FIO_RW
           value: "{{FIO_RW}}"
         - name: NUM_JOBS
-          value: "4"
-        - name: NUM_JOBS
-          value: "{{NUM_PODS}}"
+          value: "{{NUM_JOBS}}"
+        - name: NUM_CLIENTS
+          value: "{{NUM_CLIENTS}}"
         - name: FIO_JOB
-          value: "beegfs-{{FIO_RW}}"
+          value: "{{FIO_JOB}}"
         - name: SUB_JOB
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/stackhpc/fio:v3.1
+        image: docker.io/{{DOCKER_ID}}/fio:{{DOCKER_TAG}}
         imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:
         - mountPath: /data
-          name: beegfs-pv
-          subPath: /
+          name: fio-pv
+        - mountPath: /results
+          name: results-pv
+          subPath: {{RESULT_SUBPATH}}
       hostNetwork: true
       restartPolicy: Never
       volumes:
-      - name: beegfs-pv
+      - name: data-pv
         hostPath:
-          path: {{HOST_PATH}}
+          path: {{DATA_HOSTPATH}}
+      - name: result-pv
+        persistentVolumeClaim:
+          claimName: manila-cephfs-pvc
