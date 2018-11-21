@@ -46,8 +46,8 @@ follow:
 list:
 	kubectl get pods -l job-name=${JOB_NAME}
 
-process:
-	fio_parse -o ${OUT} -i ${IN} -m ${MODE} -L -S 128 256
+parse:
+	fio_parse -o ${PARSE_OUT} -i ${PARSE_IN} -m ${PARSE_MODE} -L -S 128 256 -f
 
 local:
 	bash fio_jobfiles/run_fio.sh

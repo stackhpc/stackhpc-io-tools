@@ -42,9 +42,9 @@ spec:
         name: fio-test
         resources: {}
         volumeMounts:
-        - mountPath: /data
+        - mountPath: {{DATA_PATH}}
           name: data-vol
-        - mountPath: /results
+        - mountPath: {{RESULTS_PATH}}
           name: results-vol
       hostNetwork: true
       restartPolicy: Never

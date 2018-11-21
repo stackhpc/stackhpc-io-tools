@@ -40,8 +40,8 @@ class ClatGrid:
         self.output_dir = Path(output_dir)
         self.mode = mode
         self.verbose = verbose
-        ensure_output_dir(output_dir, force)
-        self.populate(input_dirs, output_dir)
+        self.ensure_output_dir(force)
+        self.populate()
         self.aggregate_and_normalise()
         if plot:
             self.plot_cl()
@@ -169,18 +169,14 @@ class ClatGrid:
     def plot_bw(self, kind='stacked'):
         fig, ax = plt.subplots(figsize=(10, 8))
         if kind == 'boxplot':
-            pd.concat([pd.Series(row, name=i) for i, row in self.bwdf['bw']
-                       .groupby(self.bwdf.index).apply(list)
-                       .iteritems()], axis=1).boxplot(ax=ax)
+            self.bwdf.boxplot(ax=ax)
         elif kind == 'stacked':
-            pd.concat([pd.Series(row, name=i) for i, row in self.bwdf['bw']
-                       .groupby(self.bwdf.index).apply(list)
-                       .iteritems()], axis=1).plot(ax=ax, stacked=True)
+            self.bwdf.T.plot(ax=ax, stacked=True, legend=False)
         ax.set_xlabel('block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($KB/s$)' % self.mode)
-        plt.savefig(str(self.output_dir/'blocksize-vs-bandwidth-%s.png'))
+        plt.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth-%s.png' % (kind, self.mode))))
         return fig, ax
-    
+
     def plot_il(self, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
         fig, ax = plt.subplots(figsize=(10,8))
         if xlim == None:
@@ -197,14 +193,14 @@ class ClatGrid:
         plt.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))        
         return fig, ax
     
-    def populate(self, input_dirs, output_dir):
+    def populate(self):
         # For each blocksize found, emit data from each listed job
         # FIXME: need to incorporate hostname and dataset name in the results
         # Emit bandwidth data points in column format
         bw = list()
         il = list()
         cl = list()
-        for input_dir in input_dirs:
+        for input_dir in self.input_dirs:
             print "Scanning for fio data in %s" % input_dir
             fio_file_list = get_fio_file_list(input_dir)
             fio_results = get_fio_results(fio_file_list)
@@ -231,11 +227,24 @@ class ClatGrid:
                     print "Aggregated data for %d I/Os, max latency %f %s" % (sum(self.iops_bs.values()), 10**self.max_y if self.logscale else self.max_y, self.timescale)
         self.cldf = pd.DataFrame(cl).set_index('log2_bs')
         self.ildf = pd.DataFrame(il).set_index('log2_bs')
-        self.bwdf = pd.DataFrame(bw).set_index('log2_bs')
-        self.bwdf.to_csv(output_dir/(self.mode+'-bandwidth.csv'))
-        self.ildf.to_csv(output_dir/(self.mode+'-iops-latency.csv'))
-        self.cldf.to_csv(output_dir/(self.mode+'-commit-latency.csv'))
+        bwdf = pd.DataFrame(bw).set_index('log2_bs')        
+        self.bwdf = pd.concat([pd.Series(row, name=i) for i, row in bwdf['bw']
+                       .groupby(bwdf.index).apply(list).iteritems()], axis=1)        
+        self.bwdf.to_csv(self.output_dir/(self.mode+'-bandwidth.csv'))
+        self.ildf.to_csv(self.output_dir/(self.mode+'-iops-latency.csv'))
+        self.cldf.to_csv(self.output_dir/(self.mode+'-commit-latency.csv'))
         
+    def ensure_output_dir(self, force):
+        # Check the status of the output directory
+        self.output_dir.mkdir(parents=True, exist_ok=force)
+        for p in self.output_dir.iterdir():
+            if force:
+                print "Deleting existing output data %s in output directory" % (p)
+                p.unlink()
+            else:
+                print "Output directory %s is not empty: use --force to overwrite it" % (self.output_dir)
+                os.abort()
+
 def get_fio_file_list(input_dir):
     # List JSON files in the fio input directory
     try:
@@ -243,17 +252,6 @@ def get_fio_file_list(input_dir):
     except OSError as E:
         print "Could not access input directory %s" % (input_dir)
         raise E
-
-def ensure_output_dir(output_dir, force):
-    # Check the status of the output directory
-    output_dir.mkdir(parents=True, exist_ok=force)
-    for p in output_dir.iterdir():
-        if force:
-            print "Deleting existing output data %s in output directory" % (p)
-            p.unlink()
-        else:
-            print "Output directory %s is not empty: use --force to overwrite it" % (output_dir)
-            os.abort()
 
 def get_fio_results(fio_file_list):
     # Read in and parse the data files

@@ -16,7 +16,7 @@ Installation direct from the git repo:
 
 # To build and push docker image
 
-    make docker
+    make docker DOCKER_ID=stackhpc
 
 # To deploy k8s job
 
