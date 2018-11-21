@@ -22,12 +22,17 @@ class ClatGrid:
     logscale = False
     tolerance = 0.1
     ts_dict = {
+        'ns': {'divider': 1, 'label': 'n s'},        
         'us': {'divider': 10**3, 'label': '\mu s'},
         'ms': {'divider': 10**6, 'label': 'm s'},
     }
+    bs_dict = {
+        'KB': {'divider': 1, 'label': 'KB/s'},
+        'MB': {'divider': 1000, 'label': 'MB/s'},
+    }
 
     def __init__(self, input_dirs, output_dir, granularity, force,
-                 mode, skip_bs=[], logscale=False, timescale='us',
+                 mode, skip_bs=[], logscale=False, timescale='us', bytescale='MB',
                  max_bs=65536, verbose=False, plot=True):
         self.grid_y = granularity
         self.logscale = logscale
@@ -35,6 +40,8 @@ class ClatGrid:
         self.max_bs = max_bs
         self.ts_divider = self.ts_dict[timescale]['divider']
         self.ts_label = self.ts_dict[timescale]['label']
+        self.bs_divider = self.bs_dict[bytescale]['divider']
+        self.bs_label = self.bs_dict[bytescale]['label']
         self.skip_bs = skip_bs
         self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
         self.output_dir = Path(output_dir)
@@ -166,14 +173,15 @@ class ClatGrid:
         plt.savefig(str(self.output_dir/'commit-latency-freq-dist.png'))
         return fig, ax
 
-    def plot_bw(self, kind='stacked'):
+    def plot_bw(self, kind='stacked', unit=''):
         fig, ax = plt.subplots(figsize=(10, 8))
         if kind == 'boxplot':
-            self.bwdf.boxplot(ax=ax)
+            self.bwdf.apply(lambda x: x/self.bs_divider).boxplot(ax=ax)
         elif kind == 'stacked':
-            self.bwdf.T.plot(ax=ax, stacked=True, legend=False)
+            ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
+            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False)
         ax.set_xlabel('block size - $2^n$')
-        ax.set_ylabel('%s bandwidth ($KB/s$)' % self.mode)
+        ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode, self.bs_label))
         plt.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth-%s.png' % (kind, self.mode))))
         return fig, ax
 
