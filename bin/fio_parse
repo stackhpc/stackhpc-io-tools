@@ -1,4 +1,4 @@
-#! /bin/env python
+#! /usr/bin/env python
 # Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
 
 import argparse
@@ -43,6 +43,6 @@ if __name__ == "__main__":
     grid = ClatGrid(
         input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
         output_dir=Path(args.output_dir), granularity=granularity, mode=args.mode,
-        skip_bs=[int(s) for s in args.skip_bs], force=args.force, quiet=args.quiet
-        logscape=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
+        skip_bs=[int(s) for s in args.skip_bs], force=args.force, quiet=args.quiet,
+        logscale=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
     )
