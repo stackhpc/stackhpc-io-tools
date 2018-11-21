@@ -10,15 +10,17 @@ Installation direct from the git repo:
 
     pip install git+https://github.com/stackhpc/stackhpc-io-tools
 
-# To run fio locally
+# To run fio locally (which launches a single client locally)
+
+    make local
 
 # To build and push docker image
 
-    make docker DOCKER_ID=stackhpc
+    make docker
 
 # To deploy k8s job
 
-    make k8s SPEC=k8s/beegfs-read.yaml
+    make k8s NUM_CLIENTS=16
 
 # To generate plot:
 

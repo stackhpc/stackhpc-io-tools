@@ -4,14 +4,14 @@
 SCENARIO ?= ceph
 FIO_RW ?= randread
 NUM_CLIENTS ?= 1
+DATA_PATH ?= data
+RESULTS_PATH ?= results
 
-# Tunable parameters - if using Kubernetes
+# Additional tunable parameters if using k8s
 DATA_HOSTPATH ?= /mnt/ceph/bharat
 RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
 
 # Changing the options below is not recommended
-DATA_PATH ?= data
-RESULTS_PATH ?= results
 FIO_JOBFILES ?= fio_jobfiles
 DOCKER_ID ?= stackhpc
 FIO_VERSION ?= 3.1
@@ -49,5 +49,5 @@ list:
 process:
 	fio_parse -o ${OUT} -i ${IN} -m ${MODE} -L -S 128 256
 
-run:
+local:
 	bash fio_jobfiles/run_fio.sh
