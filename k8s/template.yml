@@ -1,7 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{FIO_JOB}}
+  name: {{SCENARIO_NAME}}-{{NUM_CLIENTS}}
+  labels:
+    name: fio-job
 spec:
   backoffLimit: 6
   completions: {{NUM_CLIENTS}}
@@ -18,33 +20,38 @@ spec:
         env:
         - name: FIO_RW
           value: "{{FIO_RW}}"
-        - name: NUM_JOBS
-          value: "{{NUM_JOBS}}"
+        - name: FIO_NUM_JOBS
+          value: "{{FIO_NUM_JOBS}}"
+        - name: FIO_JOBFILES
+          value: "{{FIO_JOBFILES}}"
+        - name: DATA_PATH
+          value: "{{DATA_PATH}}"
+        - name: RESULTS_PATH
+          value: "{{RESULTS_PATH}}"
         - name: NUM_CLIENTS
           value: "{{NUM_CLIENTS}}"
-        - name: FIO_JOB
-          value: "{{FIO_JOB}}"
-        - name: SUB_JOB
+        - name: SCENARIO_NAME
+          value: "{{SCENARIO_NAME}}"
+        - name: CLIENT_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: docker.io/{{DOCKER_ID}}/fio:{{DOCKER_TAG}}
+        image: docker.io/{{DOCKER_ID}}/fio:{{FIO_TAG}}
         imagePullPolicy: Always
         name: fio-test
         resources: {}
         volumeMounts:
         - mountPath: /data
-          name: fio-pv
+          name: data-vol
         - mountPath: /results
-          name: results-pv
-          subPath: {{RESULT_SUBPATH}}
+          name: results-vol
       hostNetwork: true
       restartPolicy: Never
       volumes:
-      - name: data-pv
+      - name: data-vol
         hostPath:
           path: {{DATA_HOSTPATH}}
-      - name: result-pv
-        persistentVolumeClaim:
-          claimName: manila-cephfs-pvc
+      - name: results-vol
+        hostPath:
+          path: {{RESULTS_HOSTPATH}}
