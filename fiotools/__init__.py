@@ -31,7 +31,7 @@ class ClatGrid:
         'MB': {'divider': 1000, 'label': 'MB/s'},
     }
 
-    def __init__(self, input_dirs, output_dir, granularity, force,
+    def __init__(self, input_dirs, output_dir, granularity, force, scenario,
                  mode, skip_bs=[], logscale=False, timescale='us', bytescale='MB',
                  max_bs=65536, verbose=False, plot=True):
         self.grid_y = granularity
@@ -45,7 +45,10 @@ class ClatGrid:
         self.skip_bs = skip_bs
         self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
         self.output_dir = Path(output_dir)
-        self.mode = mode
+        self.num_clients = len(self.input_dirs)
+        self.scenario = scenario
+        self.rw = mode
+        self.mode = "write" if "write" in mode else "read"
         self.verbose = verbose
         self.ensure_output_dir(force)
         self.populate()
@@ -168,8 +171,9 @@ class ClatGrid:
             .mean().reset_index().set_index('log2_bs').groupby('log2_bs') \
             .plot(x='freq',y='clat',ax=ax,loglog=self.logscale, linewidth=1, xlim=xlim, ylim=ylim)
         ax.legend(legend, title='block size ($2^n$)')
-        ax.set_ylabel('commit latency - ($%s$)' % self.ts_label)
+        ax.set_title('Distribution of %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('relative frequency')
+        ax.set_ylabel('%s commit latency - ($%s$)' % (self.mode, self.ts_label))
         plt.savefig(str(self.output_dir/'commit-latency-freq-dist.png'))
         return fig, ax
 
@@ -180,9 +184,10 @@ class ClatGrid:
         elif kind == 'stacked':
             ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
             self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False)
+        ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode, self.bs_label))
-        plt.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth-%s.png' % (kind, self.mode))))
+        plt.savefig(str(self.output_dir/('%s-blocksize-vs-%s-bandwidth.png' % (kind, self.mode))))
         return fig, ax
 
     def plot_il(self, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
@@ -196,9 +201,10 @@ class ClatGrid:
             .groupby(self.ildf.index).mean() \
             .plot(figsize=(10,8), ax=ax, xlim=xlim, ylim=ylim, linewidth=2, style='-', logy=self.logscale)
         ax.legend(title='percentiles')
+        ax.set_title('Block size vs %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('block size - $2^n$')
-        ax.set_ylabel('commit latency - $%s$' % self.ts_label)
-        plt.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))        
+        ax.set_ylabel('%s commit latency - $%s$' % (self.mode, self.ts_label))
+        plt.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))
         return fig, ax
     
     def populate(self):
