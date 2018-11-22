@@ -169,7 +169,7 @@ class ClatGrid:
             self.bwdf.apply(lambda x: x/self.bs_divider).boxplot(ax=ax)
         elif kind == 'stacked':
             ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
-            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False)
+            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True)
         ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('Block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode.capitalize(), self.bs_label))
@@ -196,14 +196,12 @@ class ClatGrid:
     def plot_cf(self, figsize=(10,8), xlim=None, ylim=None):
         fig, ax = plt.subplots(figsize=figsize)
         legend = sorted(set(self.cfdf.T.index))
-        if xlim == None:
-            xlim = [0.0, 1.0]
         if ylim == None:
             ylim = [max(1, self.min_y), self.max_y]
         ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(legend))])
         for label, group in self.cfdf.T.iterrows():
-            group.reset_index().set_index(label).plot.line(ax=ax, xlim=xlim, ylim=ylim, logy=self.logscale)
-        ax.legend(legend, title='block size ($2^n$)')                
+            group.reset_index().set_index(label).plot.line(ax=ax, xlim=None, ylim=ylim, logy=self.logscale, grid=True)
+        ax.legend(legend, title='block size ($2^n$)')
         ax.set_title('Distribution of %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('Relative frequency')
         ax.set_ylabel('%s commit latency - ($%s$)' % (self.mode.capitalize(), self.ts_label))
