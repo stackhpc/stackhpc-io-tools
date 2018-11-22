@@ -16,15 +16,18 @@ Installation direct from the git repo:
 
 # To run fio locally (which launches a single client locally)
 
-    make local DATA_DIR=/path-to-test-directory
+    make local SCENARIO=beegfs FIO_RW=randread NUM_CLIENTS=1 \
+    DATA_DIR=/path-to-test-dir RESULT_DIR=/path-to-result-dir
 
 # Alternatively, to deploy multiple clients by creating k8s job
 
-    make k8s NUM_CLIENTS=16 scenario=ceph
+    make k8s SCENARIO=beegfs FIO_RW=randread NUM_CLIENTS=16 \
+    DATA_HOSTPATH=/path-to-test-host-path RESULT_HOSTPATH=/path-to-result-host-path \
+    DATA_DIR=/path-to-test-dir RESULT_DIR=/path-to-result-dir
 
 # To generate plot:
 
-    make parse
+    make parse RESULT_DIR=/path-to-result-dir OUTPUT_DIR=/path-to-output-dir
 
 # Typical output figures:
 

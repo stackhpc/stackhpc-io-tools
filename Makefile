@@ -56,7 +56,7 @@ list:
 	kubectl get pods -l job-name=${JOB_NAME}
 
 parse:
-	fio_parse -i ${IN}/${NUM_CLIENTS}/* -o ${OUT}/${NUM_CLIENTS} -S ${SKIP_BS} -m ${FIO_RW} -s ${SCENARIO} -L -f
+	fio_parse -i ${IN}/${NUM_CLIENTS}/* -o ${OUT}/${NUM_CLIENTS} -S ${SKIP_BS} -m ${FIO_RW} -s ${SCENARIO} ${ARGS} -L -f
 
 local:
 	bash fio_jobfiles/run_fio.sh
