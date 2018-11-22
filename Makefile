@@ -1,13 +1,15 @@
 .EXPORT_ALL_VARIABLES:
 
-# Tunable parameters - ALL CASES
+# Configurable parameters - ALL CASES
 SCENARIO ?= ceph
 FIO_RW ?= randread
 NUM_CLIENTS ?= 1
 DATA_PATH ?= data
 RESULTS_PATH ?= results
+OUTPUT_PATH ?= output
+SKIP_BS ?= -1 
 
-# Additional tunable parameters if using k8s
+# Additional configurable parameters if using k8s
 DATA_HOSTPATH ?= /mnt/ceph/bharat
 RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
 
@@ -19,10 +21,17 @@ FIO_NUM_JOBS ?= 4
 
 # DO NOT CHANGE
 FIO_TAG = v${FIO_VERSION}
-SCENARIO_NAME ?= ${SCENARIO}-${FIO_RW}
-JOB_NAME ?= ${SCENARIO_NAME}-${NUM_CLIENTS}
+SCENARIO_NAME = ${SCENARIO}-${FIO_RW}
+K8S_JOB_NAME = ${SCENARIO_NAME}-${NUM_CLIENTS}
+IN = ${RESULTS_PATH}/${SCENARIO_NAME}
+OUT = ${OUTPUT_PATH}/${SCENARIO_NAME}
+ifeq (write, $(findstring write, ${FIO_RW}))
+	MODE = write
+else
+	MODE = read
+endif
 
-all: docker k8s
+all: docker local
 
 docker: build push
 
@@ -47,7 +56,7 @@ list:
 	kubectl get pods -l job-name=${JOB_NAME}
 
 parse:
-	fio_parse -o ${PARSE_OUT} -i ${PARSE_IN} -m ${PARSE_MODE} -L -S 128 256 -f
+	fio_parse -i ${IN}/${NUM_CLIENTS}/* -o ${OUT}/${NUM_CLIENTS} -S ${SKIP_BS} -m ${MODE} -L -f
 
 local:
 	bash fio_jobfiles/run_fio.sh

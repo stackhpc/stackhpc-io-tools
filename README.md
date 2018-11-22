@@ -10,22 +10,24 @@ Installation direct from the git repo:
 
     pip install git+https://github.com/stackhpc/stackhpc-io-tools
 
-# To run fio locally (which launches a single client locally)
-
-    make local
-
 # To build and push docker image
 
     make docker DOCKER_ID=stackhpc
 
-# To deploy k8s job
+# To run fio locally (which launches a single client locally)
 
-    make k8s NUM_CLIENTS=16
+    make local DATA_DIR=/path-to-test-directory
+
+# Alternatively, to deploy multiple clients by creating k8s job
+
+    make k8s NUM_CLIENTS=16 scenario=ceph
 
 # To generate plot:
 
-    fio_parse --input-dir input/fio-2018-10-29-12:03:31/read-random --output-dir output/read-random --force
+    make parse
 
-Typical output figure:
+# Typical output figures:
 
-![Typical output](blob.png)
+![Blocksize vs commit latency](example-output/blocksize-vs-commit-latency.png)
+![Commit latency frequency distribution](example-output/commit-latency-freq-dist.png)
+![Stacked blocksize vs read bandwidth](example-output/stacked-blocksize-vs-bandwidth-read.png)

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{SCENARIO_NAME}}-{{NUM_CLIENTS}}
+  name: {{K8S_JOB_NAME}}
   labels:
     name: fio-job
 spec:

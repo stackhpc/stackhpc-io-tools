@@ -160,9 +160,9 @@ class ClatGrid:
         fig, ax = plt.subplots(figsize=(10, 8))
         legend = sorted(set(self.ildf.index))
         if xlim is None:
-            xlim = [0, self.cldf['freq'].max()]
+            xlim = [max(1, self.cldf['freq'].min()), self.cldf['freq'].max()]
         if ylim is None:
-            ylim = [self.min_y, self.max_y]        
+            ylim = [max(1, self.min_y), self.max_y]        
         ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(legend))])        
         self.cldf.groupby(['log2_bs', 'clat'])['freq'] \
             .mean().reset_index().set_index('log2_bs').groupby('log2_bs') \
@@ -188,9 +188,9 @@ class ClatGrid:
     def plot_il(self, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
         fig, ax = plt.subplots(figsize=(10,8))
         if xlim == None:
-            xlim = [self.min_x,self.max_x]
+            xlim = [max(1, self.min_x), self.max_x]
         if ylim == None:    
-            ylim = [self.min_y,self.max_y]
+            ylim = [max(1, self.min_y), self.max_y]
         plt.pcolor(self.grid_X, self.grid_Y, self.grid, cmap=cmap, vmin=0.0, vmax=1.0)
         self.ildf[percentiles] \
             .groupby(self.ildf.index).mean() \

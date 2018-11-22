@@ -26,7 +26,7 @@ if __name__ == "__main__":
         help='Maximum I/O size to include in latency plots')
     parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
         help='Directory of fio result files from fio in json+ format')
-    parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+',
+    parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+', default=[],
         help='Block sizes to skip if fio has not processed them properly')
     parser.add_argument('-v', '--verbose',
         dest="verbose", action='store_const', const=True, required=False,
