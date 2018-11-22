@@ -28,22 +28,27 @@ class ClatGrid:
                     bytescale='MB', max_bs=65536, verbose=False, plot=True):
         ''' Initialisation function. '''
         
+        # Read input arguments
         self.grid_y = granularity
         self.logscale = logscale
         self.timescale = timescale
         self.max_bs = max_bs
+        self.skip_bs = skip_bs
+        self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
+        self.output_dir = Path(output_dir)
+        self.scenario = scenario
+        self.rw = mode
+        self.verbose = verbose
+        
+        # Infer these from input arguments
+        self.num_clients = len(self.input_dirs)        
+        self.mode = "write" if "write" in mode else "read"
         self.ts_divider = self.ts_dict[timescale]['divider']
         self.ts_label = self.ts_dict[timescale]['label']
         self.bs_divider = self.bs_dict[bytescale]['divider']
         self.bs_label = self.bs_dict[bytescale]['label']
-        self.skip_bs = skip_bs
-        self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
-        self.output_dir = Path(output_dir)
-        self.num_clients = len(self.input_dirs)
-        self.scenario = scenario
-        self.rw = mode
-        self.mode = "write" if "write" in mode else "read"
-        self.verbose = verbose
+        
+        # Initialise these
         self.min_x = np.inf
         self.max_x = 0
         self.min_y = np.inf
