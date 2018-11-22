@@ -31,6 +31,6 @@ Installation direct from the git repo:
 
 # Typical output figures:
 
-![Blocksize vs commit latency](example-output/blocksize-vs-commit-latency.png)
-![Commit latency frequency distribution](example-output/commit-latency-freq-dist.png)
-![Stacked blocksize vs read bandwidth](example-output/stacked-blocksize-vs-bandwidth.png)
+![Blocksize vs commit latency](example/blocksize-vs-commit-latency.png)
+![Commit latency frequency distribution](example/commit-latency-freq-dist.png)
+![Stacked blocksize vs read bandwidth](example/stacked-blocksize-vs-bandwidth.png)
