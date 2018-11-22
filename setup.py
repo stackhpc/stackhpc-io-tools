@@ -17,7 +17,7 @@ setup(
     author_email='stig@stackhpc.com',
     packages=['fiotools', 'fiotools.tests'],
     package_data={'fiotools': [os.path.join('tests', 'urls.txt'), 'VERSION']},
-    scripts=['bin/fio_parse'],
+    scripts=['bin/fio_parse','bin/templater'],
     url='https://github.com/stackhpc/stackhpc-io-tools',
     license='Apache (see LICENSE file)',
     description='IO json parser and plotter',

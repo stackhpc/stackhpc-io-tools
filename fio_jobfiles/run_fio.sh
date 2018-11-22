@@ -1,46 +1,42 @@
 #!/bin/sh
 set -ux
 
+export CLIENT_NAME=${CLIENT_NAME:-$HOSTNAME}
+
 prepare () {
-  if [ "$FIO_JOB" = "write" ]; then
-    export SCRATCH_DIR=/data/fio_write/$POD_NAME
-    mkdir -p $SCRATCH_DIR
-  else
-    export SCRATCH_DIR=/data/fio_read
-  fi
-  export JOB_DIR=/data/$JOB_NAME
-  mkdir -p $JOB_DIR
-  export JOB_LOCK="${JOB_DIR}/${FIO_JOB}.lock"
-  if [ ! -f "$JOB_LOCK" ]; then
-    for f in $(ls -I "${JOB_DIR}/*.lock"); do rm -rf $JOB_DIR/$f; done
-    touch $JOB_LOCK
-  fi
+  mkdir -p $SCENARIO_DIR
+  mkdir -p $SCRATCH_DIR
+  for F in $(ls -I "$SCENARIO_DIR/*.lock" $SCENARIO_DIR); do rm -rf $SCENARIO_DIR/$F; usleep 100000; done
 }
 
 syncpods () {
-  BS_LOCK=${JOB_DIR}/${1}.lock
+  BS_LOCK=$SCENARIO_DIR/${1}.lock
   mkdir -p $BS_LOCK
-  while [ $(ls $BS_LOCK | wc -l) -lt $NUM_PODS ]; do
-    touch $BS_LOCK/$POD_NAME
+  while [ $(ls $BS_LOCK | wc -l) -lt $NUM_CLIENTS ]; do
+    touch $BS_LOCK/$CLIENT_NAME
     usleep 100000
   done
+  mkdir -p $CLIENT_DIR
 }
 
 cleanup () {
-  sleep 1; rm -rf $JOB_DIR/*.lock
-  if [ "$FIO_JOB" = "write" ]; then rm -rf $SCRATCH_DIR; fi
-  chown -R ${RESULT_USER:-1000}:${RESULT_GROUP:-1000} $RESULT_DIR
+  sleep 1; rm -rf $SCENARIO_DIR/*.lock
+  if [ "${FIO_RW}" =~ "write" ]; then rm -rf $SCRATCH_DIR; fi
+  chown -R ${RESULT_USER:-1000}:${RESULT_GROUP:-1000} $CLIENT_DIR
 }
+
+SCRATCH_DIR=$DATA_PATH/fio_read && [[ "${FIO_RW}" =~ "write" ]] && SCRATCH_DIR=/data/fio_write/$CLIENT_NAME
+export SCRATCH_DIR
+export SCENARIO_DIR=$RESULTS_PATH/$SCENARIO_NAME/$NUM_CLIENTS
+export CLIENT_DIR=$RESULTS_PATH/$SCENARIO_NAME/$NUM_CLIENTS/$CLIENT_NAME
 
 prepare
 syncpods 0
-export RESULT_DIR=$JOB_DIR/$POD_NAME
-mkdir -p $RESULT_DIR
-let bs=128; let lim=16*1024*1024
-while [ $bs -le $lim ]; do
-  echo $bs
-  fio /fio_jobfiles/global_config.fio --fallocate=none --runtime=30 --directory=$SCRATCH_DIR --output-format=json+ --blocksize=$bs --output=$RESULT_DIR/$bs.json
-  syncpods $bs
-  let bs=2*bs
+let BS=128; let LIM=16*1024*1024
+while [ $BS -le $LIM ]; do
+  echo $BS
+  fio $FIO_JOBFILES/global_config.fio --fallocate=none --runtime=30 --directory=$SCRATCH_DIR --output-format=json+ --blocksize=$BS --output=$CLIENT_DIR/${BS}.json
+  syncpods $BS
+  let BS=2*BS
 done
 cleanup

@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{K8S_JOB_NAME}}
+  labels:
+    name: fio-job
+spec:
+  backoffLimit: 6
+  completions: {{NUM_CLIENTS}}
+  parallelism: {{NUM_CLIENTS}}
+  template:
+    metadata:
+      name: fio-pod
+    spec:
+      containers:
+      - args:
+        - /fio_jobfiles/run_fio.sh
+        command:
+        - /bin/sh
+        env:
+        - name: FIO_RW
+          value: "{{FIO_RW}}"
+        - name: FIO_NUM_JOBS
+          value: "{{FIO_NUM_JOBS}}"
+        - name: FIO_JOBFILES
+          value: "{{FIO_JOBFILES}}"
+        - name: DATA_PATH
+          value: "{{DATA_PATH}}"
+        - name: RESULTS_PATH
+          value: "{{RESULTS_PATH}}"
+        - name: NUM_CLIENTS
+          value: "{{NUM_CLIENTS}}"
+        - name: SCENARIO_NAME
+          value: "{{SCENARIO_NAME}}"
+        - name: CLIENT_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: docker.io/{{DOCKER_ID}}/fio:{{FIO_TAG}}
+        imagePullPolicy: Always
+        name: fio-test
+        resources: {}
+        volumeMounts:
+        - mountPath: {{DATA_PATH}}
+          name: data-vol
+        - mountPath: {{RESULTS_PATH}}
+          name: results-vol
+      hostNetwork: true
+      restartPolicy: Never
+      volumes:
+      - name: data-vol
+        hostPath:
+          path: {{DATA_HOSTPATH}}
+      - name: results-vol
+        hostPath:
+          path: {{RESULTS_HOSTPATH}}

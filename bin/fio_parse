@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
 
 import argparse
@@ -15,18 +15,21 @@ if __name__ == "__main__":
     parser.add_argument('-o','--output-dir', metavar='<path>',
         dest="output_dir", type=str, required=True,
         help='Directory for result data for plotting')
-    parser.add_argument('-m','--mode', metavar='<read|write>',
-        dest="output_dir", type=str, required=True,
+    parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
+        dest="scenario", type=str, required=True,
+        help='Scenario name to add to plot titles')    
+    parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
+        dest="mode", type=str, required=True,
         help='Mode to extract from json')    
     parser.add_argument('-u', '--units', metavar='<ns|us|ms>',
         dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
         help='Latency time units')
-    parser.add_argument('-M', '--max-lat-bs', metavar='<io-size>',
-        dest="max_lat_bs", type=int, default=65536,
+    parser.add_argument('-M', '--max-bs', metavar='<io-size>',
+        dest="max_bs", type=int, default=65536,
         help='Maximum I/O size to include in latency plots')
     parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
         help='Directory of fio result files from fio in json+ format')
-    parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+',
+    parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+', default=[],
         help='Block sizes to skip if fio has not processed them properly')
     parser.add_argument('-v', '--verbose',
         dest="verbose", action='store_const', const=True, required=False,
@@ -41,8 +44,8 @@ if __name__ == "__main__":
         granularity=2000    
     
     grid = ClatGrid(
-        input_dirs=[Path(input_dir) for input_dir in args.input_dirs],
-        output_dir=Path(args.output_dir), granularity=granularity, mode=args.mode,
-        skip_bs=[int(s) for s in args.skip_bs], force=args.force, quiet=args.quiet,
-        logscale=args.logscale, units=args.units, max_lat_bs=args.max_lat_bs
+        input_dirs=args.input_dirs, output_dir=args.output_dir,
+        granularity=granularity, mode=args.mode, scenario=args.scenario,
+        skip_bs=[int(s) for s in args.skip_bs], force=args.force, verbose=args.verbose,
+        logscale=args.logscale, timescale=args.units, max_bs=args.max_bs
     )
