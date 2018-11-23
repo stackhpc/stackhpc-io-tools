@@ -1,5 +1,7 @@
 # .config/matplotlib/matplotlibrc line backend : Agg
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 from pathlib2 import Path
 import pandas as pd
 import numpy as np

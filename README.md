@@ -25,6 +25,16 @@ Installation direct from the git repo:
     DATA_HOSTPATH=/path-to-test-host-path RESULT_HOSTPATH=/path-to-result-host-path \
     DATA_DIR=/path-to-test-dir RESULT_DIR=/path-to-result-dir
 
+# To run a batch job:
+
+    for c in 1 2 4 8 16 32; do
+      for rw in write randwrite read randread; do
+        for s in beegfs ceph; do
+          make NUM_CLIENTS=$c FIO_RW=$rw DATA_HOSTPATH=/mnt/$s SCENARIO=$s k8s;
+        done
+      done
+    done
+
 # To generate plot:
 
     make parse RESULT_DIR=/path-to-result-dir OUTPUT_DIR=/path-to-output-dir

@@ -27,6 +27,8 @@ setup(
         'matplotlib',
         'pandas',
         'numpy',
+        'pathlib2',
+        'unittest2',
         ],
     test_suite='fiotools.tests'
 )
