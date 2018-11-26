@@ -173,8 +173,9 @@ class ClatGrid:
         self.cfdf = pd.DataFrame(self.grid, columns=sorted(set(self.cldf.index)), index=self.grid_Y)
         self.cfdf.to_csv(self.output_dir/(self.mode+'-commit-latency-freq-dist.csv'))
 
-    def plot_bw(self, figsize=(10,8), kind='stacked', unit=''):
-        fig, ax = plt.subplots(figsize=figsize)
+    def plot_bw(self, figsize=(10,8), fig=None, ax=None, kind='stacked', unit=''):
+        if fig == None or ax == None:
+            fig, ax = plt.subplots(figsize=figsize)
         if kind == 'boxplot':
             self.bwdf.apply(lambda x: x/self.bs_divider).boxplot(ax=ax)
         elif kind == 'stacked':
@@ -186,8 +187,9 @@ class ClatGrid:
         plt.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth.png' % kind)))
         return fig, ax
 
-    def plot_cl(self, figsize=(10,8), percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
-        fig, ax = plt.subplots(figsize=figsize)
+    def plot_cl(self, figsize=(10,8), fig=None, ax=None, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
+        if fig == None or ax == None:
+            fig, ax = plt.subplots(figsize=figsize)
         if xlim == None:
             xlim = [self.min_x, self.max_x]
         if ylim == None:    
@@ -203,8 +205,9 @@ class ClatGrid:
         plt.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))
         return fig, ax
     
-    def plot_cf(self, figsize=(10,8), xlim=None, ylim=None):
-        fig, ax = plt.subplots(figsize=figsize)
+    def plot_cf(self, figsize=(10,8), fig=None, ax=None, xlim=None, ylim=None):
+        if fig == None or ax == None:
+            fig, ax = plt.subplots(figsize=figsize)
         legend = sorted(set(self.cfdf.T.index))
         if ylim == None:
             ylim = [max(1, self.min_y), self.max_y]
