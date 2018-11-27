@@ -173,14 +173,14 @@ class ClatGrid:
         self.cfdf = pd.DataFrame(self.grid, columns=sorted(set(self.cldf.index)), index=self.grid_Y)
         self.cfdf.to_csv(self.output_dir/(self.mode+'-commit-latency-freq-dist.csv'))
 
-    def plot_bw(self, figsize=(10,8), fig=None, ax=None, kind='stacked', unit=''):
+    def plot_bw(self, figsize=(10,8), fig=None, ax=None, ylim=None, kind='stacked', unit=''):
         if fig == None or ax == None:
             fig, ax = plt.subplots(figsize=figsize)
         if kind == 'boxplot':
             self.bwdf.apply(lambda x: x/self.bs_divider).boxplot(ax=ax)
         elif kind == 'stacked':
             ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
-            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True)
+            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True, ylim=ylim)
         ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
         ax.set_xlabel('Block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode.capitalize(), self.bs_label))
