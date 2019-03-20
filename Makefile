@@ -11,9 +11,9 @@ SKIP_BS ?= -1
 
 # Additional configurable parameters if using k8s
 DATA_HOSTPATH ?= /mnt/storage-nvme/bharat
-DATA_HOSTPATH ?= /mnt/ceph/bharat
+# DATA_HOSTPATH ?= /mnt/ceph/bharat
 RESULTS_HOSTPATH ?= /mnt/storage-nvme/bharat/results
-RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
+# RESULTS_HOSTPATH ?= /mnt/ceph/bharat/results
 
 # Changing the options below is not recommended
 FIO_JOBFILES ?= fio_jobfiles
