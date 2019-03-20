@@ -35,7 +35,7 @@ all: docker local
 
 docker: build push
 
-k8s: delete create list
+k8s: create list wait delete
 
 build: 
 	sudo docker build . --build-arg FIO_VERSION=${FIO_VERSION} --build-arg FIO_JOBFILES=${FIO_JOBFILES} -t ${DOCKER_ID}/fio:${FIO_TAG}
@@ -47,16 +47,22 @@ delete:
 	-templater k8s/template.yml | kubectl delete -f -
 
 create:
-	templater k8s/template.yml | kubectl create -f -
+	-templater k8s/template.yml | kubectl create -f -
 
 follow:
-	kubectl logs -f jobs/${JOB_NAME}
+	kubectl logs -f jobs/${K8S_JOB_NAME}
 
 list:
-	kubectl get pods -l job-name=${JOB_NAME}
+	kubectl get pods -l job-name=${K8S_JOB_NAME}
+
+wait:
+	kubectl wait --for=condition=complete jobs/${K8S_JOB_NAME} --timeout=-1s
 
 parse:
 	fio_parse -i ${IN}/${NUM_CLIENTS}/* -o ${OUT}/${NUM_CLIENTS} -S ${SKIP_BS} -m ${FIO_RW} -s ${SCENARIO} ${ARGS} -L -f
 
 local:
 	bash fio_jobfiles/run_fio.sh
+
+test:
+	unit2

@@ -21,7 +21,7 @@ syncpods () {
 
 cleanup () {
   sleep 1; rm -rf $SCENARIO_DIR/*.lock
-  if [ "${FIO_RW}" =~ "write" ]; then rm -rf $SCRATCH_DIR; fi
+  if [[ "${FIO_RW}" =~ "write" ]]; then rm -rf $SCRATCH_DIR; fi
   chown -R ${RESULT_USER:-1000}:${RESULT_GROUP:-1000} $CLIENT_DIR
 }
 
