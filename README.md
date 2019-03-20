@@ -35,6 +35,14 @@ Installation direct from the git repo:
       done
     done
 
+As the test is running, it might be useful to look at the verbose output of the test as follows:
+
+    kubectl --namespace default logs jobs/beegfs-randread-1 --follow
+
+For debugging, you can also invoke shell inside the pod:
+
+    kubectl --namespace default exec -it beegfs-randread-1-n44kj sh
+
 # To generate plot:
 
     make parse RESULT_DIR=/path-to-result-dir OUTPUT_DIR=/path-to-output-dir
