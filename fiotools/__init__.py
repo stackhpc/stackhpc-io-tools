@@ -9,15 +9,7 @@ import os
 
 
 class ClatGrid:
-
-    min_x = np.inf
-    max_x = 0
-    min_y = np.inf
-    max_y = 0.
-    grid_y = 0
-    io_bs = {}
-    io_density = {}
-    iops_bs = {}
+    
     timescale = 'us'
     logscale = False
     tolerance = 0.1
@@ -34,22 +26,38 @@ class ClatGrid:
     def __init__(self, input_dirs, output_dir, granularity, scenario, mode,
                     force=False, skip_bs=[], logscale=False, timescale='us',
                     bytescale='MB', max_bs=65536, verbose=False, plot=True):
+        ''' Initialisation function. '''
+        
+        # Read input arguments
         self.grid_y = granularity
         self.logscale = logscale
         self.timescale = timescale
         self.max_bs = max_bs
+        self.skip_bs = skip_bs
+        self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
+        self.output_dir = Path(output_dir)
+        self.scenario = scenario
+        self.rw = mode
+        self.verbose = verbose
+        
+        # Infer these from input arguments
+        self.num_clients = len(self.input_dirs)        
+        self.mode = "write" if "write" in mode else "read"
         self.ts_divider = self.ts_dict[timescale]['divider']
         self.ts_label = self.ts_dict[timescale]['label']
         self.bs_divider = self.bs_dict[bytescale]['divider']
         self.bs_label = self.bs_dict[bytescale]['label']
-        self.skip_bs = skip_bs
-        self.input_dirs = [Path(input_dir) for input_dir in input_dirs]
-        self.output_dir = Path(output_dir)
-        self.num_clients = len(self.input_dirs)
-        self.scenario = scenario
-        self.rw = mode
-        self.mode = "write" if "write" in mode else "read"
-        self.verbose = verbose
+        
+        # Initialise these
+        self.min_x = np.inf
+        self.max_x = 0
+        self.min_y = np.inf
+        self.max_y = 0.
+        self.io_bs = {}
+        self.io_density = {}
+        self.iops_bs = {}        
+        
+        # Function calls
         self.ensure_output_dir(force)
         self.populate()
         self.aggregate_and_normalise()
@@ -122,7 +130,7 @@ class ClatGrid:
                                       self.grid_y)
         else:
             self.grid_Y = np.linspace(self.min_y, self.max_y, self.grid_y)
-        grid = np.zeros((self.grid_y, self.grid_x), dtype=np.dtype('double'))
+        self.grid = grid = np.zeros((self.grid_y, self.grid_x), dtype=np.dtype('double'))
         # Perform the gridding interpolation
         for log2_bs, io_density in self.io_density.iteritems():
             col = log2_bs - self.min_x
@@ -157,7 +165,7 @@ class ClatGrid:
                     "CHECK FAILED: blocksize %d cumulative density %f cumulative grid %f"
                     % (2**log2_bs, io_density_check, grid_check))
         # Normalize grid
-        self.grid = grid/grid.max()
+        grid /= grid.max()
         # Set empty bins to NaN to ensure they do not get plotted
         self.grid[grid == 0.0] = np.nan
         self.cfdf = pd.DataFrame(self.grid, columns=sorted(set(self.cldf.index)), index=self.grid_Y)
