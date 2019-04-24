@@ -32,13 +32,19 @@ by Kubernetes.
     make k8s SCENARIO=beegfs FIO_RW=randread NUM_CLIENTS=16 \
     DATA_HOSTPATH=/path-to-test-host-path RESULTS_HOSTPATH=/path-to-result-host-path \
 
-# To run a batch job:
+# To run batch jobs:
+
+## In kubernetes:
+
+    for c in 1 64; do
+      for rw in write randwrite read randread; do
+        make NUM_CLIENTS=$c FIO_RW=$rw DATA_HOSTPATH=/mnt/storage-nvme/bharat RESULTS_HOSTPATH=/mnt/storage-nvme/bharat/results/crio SCENARIO=beegfs k8s;
+      done
+    done
 
     for c in 1 2 4 8 16 32; do
       for rw in write randwrite read randread; do
-        for s in beegfs ceph; do
-          make NUM_CLIENTS=$c FIO_RW=$rw DATA_HOSTPATH=/mnt/$s SCENARIO=$s k8s;
-        done
+        make NUM_CLIENTS=$c FIO_RW=$rw DATA_HOSTPATH=/alaska SCENARIO=ceph k8s;
       done
     done
 
@@ -49,6 +55,14 @@ As the test is running, it might be useful to look at the verbose output of the 
 For debugging, you can also invoke shell inside the pod:
 
     kubectl --namespace default exec -it beegfs-randread-1-n44kj sh
+
+## To run remote baremetal jobs:
+
+    for c in 1 64; do
+      for rw in write randwrite read randread; do
+        make NUM_NODES=2 NODE_PREFIX=centos@kata-worker NUM_CLIENTS=$c FIO_RW=$rw DATA_PATH=/mnt/storage-nvme RESULTS_PATH=/mnt/storage-nvme/bharat/results/bare SCENARIO=beegfs remote;
+      done
+    done
 
 # To generate plot:
 

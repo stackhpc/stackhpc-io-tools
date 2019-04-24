@@ -8,6 +8,11 @@ DATA_PATH ?= data
 RESULTS_PATH ?= results
 OUTPUT_PATH ?= output
 SKIP_BS ?= -1 
+NUM_NODES ?= 1
+RUNTIME_CLASS ?= #kata-qemu
+NUM_CLIENTS_PER_NODE:= $(shell echo ${NUM_CLIENTS} / ${NUM_NODES} | bc)
+MAX_NODE_INDEX := $(shell echo ${NUM_NODES} - 1 | bc)
+MAX_CLIENT_INDEX:= $(shell echo ${NUM_CLIENTS} - 1 | bc)
 
 # Additional configurable parameters if using k8s
 DATA_HOSTPATH ?= /mnt/storage-nvme/bharat
@@ -22,7 +27,7 @@ FIO_VERSION ?= 3.1
 FIO_NUM_JOBS ?= 4
 
 # DO NOT CHANGE
-FIO_TAG = v${FIO_VERSION}
+FIO_TAG = v${FIO_VERSION}.1
 SCENARIO_NAME = ${SCENARIO}-${FIO_RW}
 K8S_JOB_NAME = ${SCENARIO_NAME}-${NUM_CLIENTS}
 IN = ${RESULTS_PATH}/${SCENARIO_NAME}
@@ -62,6 +67,16 @@ wait:
 
 parse:
 	fio_parse -i ${IN}/${NUM_CLIENTS}/* -o ${OUT}/${NUM_CLIENTS} -S ${SKIP_BS} -m ${FIO_RW} -s ${SCENARIO} ${ARGS} -L -f
+
+copy:
+	for i in {0..${MAX_NODE_INDEX}}; do\
+		scp -r fio_jobfiles/ ${NODE_PREFIX}-$$i:;\
+	done
+
+remote:
+	for i in {0..${MAX_CLIENT_INDEX}}; do \
+		ssh ${NODE_PREFIX}-$$(( $$i % ${NUM_NODES} )) NUM_NODES=${NUM_NODES} FIO_RW=${FIO_RW} FIO_NUM_JOBS=${FIO_NUM_JOBS} FIO_JOBFILES=${FIO_JOBFILES} DATA_PATH=${DATA_PATH} RESULTS_PATH=${RESULTS_PATH} NUM_CLIENTS=${NUM_CLIENTS} SCENARIO_NAME=${SCENARIO_NAME} CLIENT_NAME=${K8S_JOB_NAME}-client-$$$$-$$i sudo -E bash fio_jobfiles/run_fio.sh & \
+	done; sleep 10; wait
 
 local:
 	bash fio_jobfiles/run_fio.sh

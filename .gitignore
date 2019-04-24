@@ -2,3 +2,5 @@
 *.pem
 .ipynb_checkpoints/
 output/
+beegfs-*
+ceph-*
