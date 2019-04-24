@@ -3,7 +3,7 @@
 # Very simple templating system that replaces {{VAR}} by the value of $VAR.
 # Supports default values by writting {{VAR=value}} in the template.
 #
-# Copyright (c) 2017 Sébastien Lavoie
+# Copyright (c) 2017 Sebastien Lavoie
 # Copyright (c) 2017 Johan Haleby
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
