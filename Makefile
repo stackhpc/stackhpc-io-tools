@@ -60,7 +60,7 @@ follow:
 	kubectl logs -f jobs/${K8S_JOB_NAME}
 
 list:
-	kubectl get pods -l job-name=${K8S_JOB_NAME}
+	kubectl get pods -l job-name=${K8S_JOB_NAME} -o wide
 
 wait:
 	kubectl wait --for=condition=complete jobs/${K8S_JOB_NAME} --timeout=-1s

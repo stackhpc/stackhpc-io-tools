@@ -11,12 +11,12 @@ import os
 
 
 class ClatGrid:
-    
+
     timescale = 'us'
     logscale = False
     tolerance = 0.1
     ts_dict = {
-        'ns': {'divider': 1, 'label': 'n s'},        
+        'ns': {'divider': 1, 'label': 'n s'},
         'us': {'divider': 10**3, 'label': '\mu s'},
         'ms': {'divider': 10**6, 'label': 'm s'},
     }
@@ -29,7 +29,7 @@ class ClatGrid:
                     force=False, skip_bs=[], logscale=False, timescale='us',
                     bytescale='MB', max_bs=65536, verbose=False, plot=True):
         ''' Initialisation function. '''
-        
+
         # Read input arguments
         self.grid_y = granularity
         self.logscale = logscale
@@ -41,15 +41,15 @@ class ClatGrid:
         self.scenario = scenario
         self.rw = mode
         self.verbose = verbose
-        
+
         # Infer these from input arguments
-        self.num_clients = len(self.input_dirs)        
+        self.num_clients = len(self.input_dirs)
         self.mode = "write" if "write" in mode else "read"
         self.ts_divider = self.ts_dict[timescale]['divider']
         self.ts_label = self.ts_dict[timescale]['label']
         self.bs_divider = self.bs_dict[bytescale]['divider']
         self.bs_label = self.bs_dict[bytescale]['label']
-        
+
         # Initialise these
         self.min_x = np.inf
         self.max_x = 0
@@ -57,8 +57,8 @@ class ClatGrid:
         self.max_y = 0.
         self.io_bs = {}
         self.io_density = {}
-        self.iops_bs = {}        
-        
+        self.iops_bs = {}
+
         # Function calls
         self.ensure_output_dir(force)
         self.populate()
@@ -173,18 +173,19 @@ class ClatGrid:
         self.cfdf = pd.DataFrame(self.grid, columns=sorted(set(self.cldf.index)), index=self.grid_Y)
         self.cfdf.to_csv(self.output_dir/(self.mode+'-commit-latency-freq-dist.csv'))
 
-    def plot_bw(self, figsize=(10,8), fig=None, ax=None, ylim=None, kind='stacked', unit=''):
+    def plot_bw(self, figsize=(10, 8), fig=None, ax=None, ylim=None, kind='stacked', unit=''):
         if fig == None or ax == None:
             fig, ax = plt.subplots(figsize=figsize)
         if kind == 'boxplot':
             self.bwdf.apply(lambda x: x/self.bs_divider).boxplot(ax=ax)
         elif kind == 'stacked':
             ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
-            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True, ylim=ylim)
-        ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
+            self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True, ylim=ylim, linewidth=1)
+        ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients))
+        ax.set_xticks(sorted(set(self.cldf.index)))
         ax.set_xlabel('Block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode.capitalize(), self.bs_label))
-        plt.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth.png' % kind)))
+        fig.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth.png' % kind)))
         return fig, ax
 
     def plot_cl(self, figsize=(10,8), fig=None, ax=None, percentiles=[50.0,95.0,99.0,99.99], xlim=None, ylim=None, cmap='gist_heat'):
@@ -192,19 +193,20 @@ class ClatGrid:
             fig, ax = plt.subplots(figsize=figsize)
         if xlim == None:
             xlim = [self.min_x, self.max_x]
-        if ylim == None:    
+        if ylim == None:
             ylim = [max(1, self.min_y), self.max_y]
         ax.pcolor(self.grid_X, self.grid_Y, self.grid, cmap=cmap, vmin=0.0, vmax=1.0)
         self.cldf[percentiles] \
             .groupby(self.cldf.index).mean() \
-            .plot(ax=ax, xlim=xlim, ylim=ylim, linewidth=2, style='-', logy=self.logscale)
+            .plot(ax=ax, xlim=xlim, ylim=ylim, linewidth=1, style='-', logy=self.logscale)
         ax.legend(title='percentiles')
-        ax.set_title('Block size vs %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
+        ax.set_title('Block size vs %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients))
+        ax.set_xticks(sorted(set(self.cldf.index)))
         ax.set_xlabel('Block size - $2^n$')
         ax.set_ylabel('%s commit latency - $%s$' % (self.mode.capitalize(), self.ts_label))
-        plt.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))
+        fig.savefig(str(self.output_dir/'blocksize-vs-commit-latency.png'))
         return fig, ax
-    
+
     def plot_cf(self, figsize=(10,8), fig=None, ax=None, xlim=None, ylim=None):
         if fig == None or ax == None:
             fig, ax = plt.subplots(figsize=figsize)
@@ -215,10 +217,10 @@ class ClatGrid:
         for label, group in self.cfdf.T.iterrows():
             group.reset_index().set_index(label).plot.line(ax=ax, xlim=None, ylim=ylim, logy=self.logscale, grid=True)
         ax.legend(legend, title='block size ($2^n$)')
-        ax.set_title('Distribution of %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients)) 
+        ax.set_title('Distribution of %s commit latency - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients))
         ax.set_xlabel('Relative frequency')
         ax.set_ylabel('%s commit latency - ($%s$)' % (self.mode.capitalize(), self.ts_label))
-        plt.savefig(str(self.output_dir/'commit-latency-freq-dist.png'))
+        fig.savefig(str(self.output_dir/'commit-latency-freq-dist.png'))
         return fig, ax
 
     def populate(self):
@@ -243,18 +245,18 @@ class ClatGrid:
                         row.update({float(percentile): clat_ns/self.ts_divider for percentile, clat_ns in bs_job[self.mode]['clat_ns']['percentile'].iteritems()})
                         cl.append(row)
                         # Aggregate data from each dataset
-                        self.add_series(log2_bs, bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins']) 
+                        self.add_series(log2_bs, bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins'])
                         if self.verbose:
                             print "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios'])
                 if self.verbose:
                     print "Aggregated data for %d I/Os, max latency %f %s" % (sum(self.iops_bs.values()), self.max_y, self.timescale)
         self.cldf = pd.DataFrame(cl).set_index('log2_bs')
-        bwdf = pd.DataFrame(bw).set_index('log2_bs')        
+        bwdf = pd.DataFrame(bw).set_index('log2_bs')
         self.bwdf = pd.concat([pd.Series(row, name=i) for i, row in bwdf['bw']
-                       .groupby(bwdf.index).apply(list).iteritems()], axis=1)        
+                       .groupby(bwdf.index).apply(list).iteritems()], axis=1)
         self.bwdf.to_csv(self.output_dir/(self.mode+'-bandwidth.csv'))
         self.cldf.to_csv(self.output_dir/(self.mode+'-commit-latency.csv'))
-        
+
     def ensure_output_dir(self, force):
         # Check the status of the output directory
         self.output_dir.mkdir(parents=True, exist_ok=force)
@@ -266,6 +268,7 @@ class ClatGrid:
                 print "Output directory %s is not empty: use --force to overwrite it" % (self.output_dir)
                 os.abort()
 
+
 def get_fio_file_list(input_dir):
     # List JSON files in the fio input directory
     try:
@@ -273,6 +276,7 @@ def get_fio_file_list(input_dir):
     except OSError as E:
         print "Could not access input directory %s" % (input_dir)
         raise E
+
 
 def get_fio_results(fio_file_list):
     # Read in and parse the data files
