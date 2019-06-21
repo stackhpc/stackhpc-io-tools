@@ -35,7 +35,7 @@ syncpods 0
 let BS=256; let LIM=16*1024*1024
 while [ $BS -le $LIM ]; do
   echo $BS
-  fio $FIO_JOBFILES/global_config.fio --fallocate=none --runtime=30 --directory=$SCRATCH_DIR --output-format=json+ --blocksize=$BS --output=$CLIENT_DIR/${BS}.json
+  fio $FIO_JOBFILES/global_config.fio --directory=$SCRATCH_DIR --output-format=json+ --blocksize=$BS --output=$CLIENT_DIR/${BS}.json
   syncpods $BS
   let BS=2*BS
 done
