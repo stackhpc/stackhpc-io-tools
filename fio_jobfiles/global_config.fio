@@ -1,6 +1,13 @@
 [global]
 ; Parameters common to all test environments
 
+; Do not use fallocate. Not all the filesystem types we can test (such as 9p) support
+; this - which can then generate errors in the JSON datastream.
+fallocate=none
+
+; Limit runtime
+runtime=30
+
 ; Ensure that jobs run for a specified time limit, not I/O quantity
 time_based=1
 
@@ -13,6 +20,10 @@ iodepth=8
 ; (and may not apply for Windows test clients)
 direct=1
 buffered=0
+
+; Settings from Kata container repo
+invalidate=1
+ramp_time=0
 
 ; Set a number of workers on this client
 thread=0

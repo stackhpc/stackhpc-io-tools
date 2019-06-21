@@ -12,6 +12,7 @@ spec:
     metadata:
       name: fio-pod
     spec:
+      runtimeClassName: {{RUNTIME_CLASS}}
       containers:
       - args:
         - /fio_jobfiles/run_fio.sh
