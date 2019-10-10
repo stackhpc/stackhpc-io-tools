@@ -42,7 +42,7 @@ all: docker local
 
 docker: build push
 
-k8s: create list wait delete
+k8s: delete create list wait
 
 build: 
 	sudo docker build . --build-arg FIO_VERSION=${FIO_VERSION} --build-arg FIO_JOBFILES=${FIO_JOBFILES} -t ${DOCKER_ID}/fio:${FIO_TAG}
