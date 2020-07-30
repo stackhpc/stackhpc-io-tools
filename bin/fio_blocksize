@@ -5,7 +5,7 @@ import argparse
 from fiotools import ClatGrid
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Parse fio output')
+    parser = argparse.ArgumentParser(description='Parse fio output by block size')
     parser.add_argument('-L', '--logscale',
         dest="logscale", action='store_const', const=True, required=False,
         help='Logarithmic axes for latency plots')
@@ -31,6 +31,8 @@ if __name__ == "__main__":
         help='Directory of fio result files from fio in json+ format')
     parser.add_argument('-S', '--skip-bs', dest='skip_bs', nargs='+', default=[],
         help='Block sizes to skip if fio has not processed them properly')
+    parser.add_argument('-c', '--clients', dest='clients', type=int, default=1,
+        help='Number of test clients')
     parser.add_argument('-v', '--verbose',
         dest="verbose", action='store_const', const=True, required=False,
         help='Verbose mode, print additional details on stdout.')
@@ -39,13 +41,15 @@ if __name__ == "__main__":
 
     # Logarithmic plots fare better with less granular bins
     if args.logscale:
-        granularity=200
+        granularity=50
     else:
         granularity=2000    
     
     grid = ClatGrid(
         input_dirs=args.input_dirs, output_dir=args.output_dir,
         granularity=granularity, mode=args.mode, scenario=args.scenario,
-        skip_bs=[int(s) for s in args.skip_bs], force=args.force, verbose=args.verbose,
-        logscale=args.logscale, timescale=args.units, max_bs=args.max_bs
+        skip_bs=[int(s) for s in args.skip_bs],
+        max_bs=args.max_bs, clients=args.clients,
+        force=args.force, verbose=args.verbose,
+        logscale=args.logscale, timescale=args.units
     )
