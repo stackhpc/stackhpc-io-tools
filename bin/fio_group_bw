@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+# Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
+# For FIO client-server invocation with group reporting
+# With fio output in json or json+ format
+# Plot IOPS and bandwidth graphs for increasing numbers of test clients
+
+import argparse
+import fiotools.Data
+import fiotools.Plot
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Parse fio output by client count')
+    parser.add_argument('-f', '--force',
+        dest="force", action='store_const', const=True, required=False,
+        help='Overwrite previous output data, if existing')
+    parser.add_argument('-o','--output-dir', metavar='<path>',
+        dest="output_dir", type=str, required=True,
+        help='Directory for result data for plotting')
+    parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
+        dest="scenario", type=str, required=True,
+        help='Scenario name to add to plot titles')    
+    parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
+        dest="mode", type=str, required=True,
+        help='Mode to extract from json')    
+    parser.add_argument('-b', '--bs', metavar='<io-size>',
+        dest="bs", type=int, default=1024,
+        help='I/O size to fix while varying the number of clients')
+    parser.add_argument('-i', '--input-dir', dest='input_dir',
+        help='Directory of fio result files from fio in group-reporting json+ format')
+    parser.add_argument('-v', '--verbose',
+        dest="verbose", action='store_const', const=True, required=False,
+        help='Verbose mode, print additional details on stdout.')
+
+    args = parser.parse_args()
+
+    run_data = fiotools.Data.SeriesGroup( args.input_dir )
+    bw_plot = fiotools.Plot.BandwidthClient( args.scenario, args.bs, run_data )

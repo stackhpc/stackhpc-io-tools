@@ -140,7 +140,7 @@ class ClatGrid:
         # Add the data to any existing data sets for this blocksize
         # Each entry for X is a dict of { Y: Z }
         self.io_data[x] = self.io_data.get(x, []) + [io_data]
-        print "Column %d - IOPS total %d+%d" % (x, self.iops_data.get(x, 0), iops_total)
+        print( "Column %d - IOPS total %d+%d" % (x, self.iops_data.get(x, 0), iops_total) )
         self.iops_data[x] = self.iops_data.get(x, 0) + iops_total
 
 
@@ -174,7 +174,7 @@ class ClatGrid:
             # The generated list of I/O frequency density ranges
             # is suitable for resampling on a regularised grid
             self.io_density[X] = io_density
-            print "Column %d normalised max %f" % (X, max_X_Z)
+            print( "Column %d normalised max %f" % (X, max_X_Z) )
 
         # Now, reinterpolate the data to a regular grid spacing
         # to enable aggregation and plotting.
@@ -218,7 +218,7 @@ class ClatGrid:
                 io_density_check += D['density']*(D['upper'] - D['lower'])
             # Paranoia
             if self.verbose:
-                print "blocksize: %s cumulative density %f cumulative grid %f" % (2**X, io_density_check,grid_check)
+                print( "blocksize: %s cumulative density %f cumulative grid %f" % (2**X, io_density_check,grid_check) )
             if (abs(io_density_check - 1) > self.tolerance or
                     abs(grid_check - 1) > self.tolerance):
                 raise ValueError(
@@ -339,11 +339,11 @@ class ClatGrid:
         bw = list()
         cl = list()
         for input_dir in self.input_dirs:
-            print "Scanning for fio data in %s" % input_dir
+            print( "Scanning for fio data in %s" % input_dir )
             fio_file_list = get_fio_file_list(input_dir)
             fio_results = get_fio_results(fio_file_list)
             if self.num_clients not in fio_results:
-                print "No data for %d-client config found in %s" % (self.num_clients, input_dir)
+                print( "No data for %d-client config found in %s" % (self.num_clients, input_dir) )
                 continue
             bs_list = sorted(fio_results[self.num_clients].keys())
             for bs in bs_list:
@@ -359,12 +359,12 @@ class ClatGrid:
                         # Aggregate data from each dataset
                         self.add_series(log2_bs, bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins'])
                         if self.verbose:
-                            print "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios'])
+                            print( "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios']) )
                 if self.verbose:
-                    print "%d-client config: Aggregated data for %d I/Os, max latency %f %s" % (self.num_clients, sum([x['iops'] for x in cl]), self.max_Y, self.timescale)
+                    print( "%d-client config: Aggregated data for %d I/Os, max latency %f %s" % (self.num_clients, sum([x['iops'] for x in cl]), self.max_Y, self.timescale) )
 
         if not bw:
-            print "No data found for %d-client configuration in %s" % (self.num_clients, [str(x) for x in self.input_dirs])
+            print( "No data found for %d-client configuration in %s" % (self.num_clients, [str(x) for x in self.input_dirs]) )
             return False
 
         self.cldf = pd.DataFrame(cl).set_index('log2_bs')
@@ -383,7 +383,7 @@ class ClatGrid:
         iops = list()
         cl = list()
         for input_dir in self.input_dirs:
-            print "Scanning for fio data in %s" % input_dir
+            print( "Scanning for fio data in %s" % input_dir )
             fio_file_list = get_fio_file_list(input_dir)
             fio_results = get_fio_results(fio_file_list)
             for num_clients in sorted(fio_results.keys()):
@@ -406,16 +406,16 @@ class ClatGrid:
                     check_ios = bs_job[self.mode]['io_kbytes'] * 1000 / bs
                     sum_ios = sum(bs_job[self.mode]['clat_ns']['bins'].values())
                     if check_ios != total_ios or sum_ios != total_ios:
-                        print "%d-client config, I/O size %d, job %s: differing total IOs total_ios %d io_kbytes %d clat sum %d" % (num_clients, bs, self.mode, total_ios, check_ios, sum_ios)
+                        print( "%d-client config, I/O size %d, job %s: differing total IOs total_ios %d io_kbytes %d clat sum %d" % (num_clients, bs, self.mode, total_ios, check_ios, sum_ios) )
                         total_ios = sum_ios
                     self.add_series(num_clients, total_ios, bs_job[self.mode]['clat_ns']['bins'])
                     if self.verbose:
-                        print "%d-client config, I/O size %d, job %s: %d samples" % (num_clients, bs, self.mode, total_ios)
+                        print( "%d-client config, I/O size %d, job %s: %d samples" % (num_clients, bs, self.mode, total_ios) )
             if self.verbose:
-                print "%d-client config: Aggregated data for %d I/Os, max latency %f %s" % (self.num_clients, sum([x['iops'] for x in cl]), self.max_Y, self.timescale)
+                print( "%d-client config: Aggregated data for %d I/Os, max latency %f %s" % (self.num_clients, sum([x['iops'] for x in cl]), self.max_Y, self.timescale) )
 
         if not bw:
-            print "No data found for %d-client configuration in %s" % (self.num_clients, [str(x) for x in self.input_dirs])
+            print( "No data found for %d-client configuration in %s" % (self.num_clients, [str(x) for x in self.input_dirs]) )
             return False
 
         self.cldf = pd.DataFrame(cl).set_index('test_clients')
@@ -438,10 +438,10 @@ class ClatGrid:
         self.output_dir.mkdir(parents=True, exist_ok=force)
         for p in self.output_dir.iterdir():
             if force:
-                print "Deleting existing output data %s in output directory" % (p)
+                print( "Deleting existing output data %s in output directory" % (p) )
                 p.unlink()
             else:
-                print "Output directory %s is not empty: use --force to overwrite it" % (self.output_dir)
+                print( "Output directory %s is not empty: use --force to overwrite it" % (self.output_dir) )
                 os.abort()
 
 
@@ -456,7 +456,7 @@ def get_fio_file_list(input_dir):
             #for subdir in dirs:
                 #results += get_fio_file_list( os.path.join(root,subdir) )
     except OSError as E:
-        print "Could not access input directory %s" % (input_dir)
+        print( "Could not access input directory %s" % (input_dir) )
         raise E
 
     return results
@@ -477,9 +477,9 @@ def get_fio_results(fio_file_list):
                     fio_results[test_clients][test_bs] = []
                 fio_results[test_clients][test_bs] += [fio_run_data]
             except ValueError:
-                print "Skipping %s: could not be parsed as JSON" % (fio_file)
+                print( "Skipping %s: could not be parsed as JSON" % (fio_file) )
                 pass
             except KeyError as E:
-                print "Skipping %s: data structure could not be parsed: %s" % (fio_file, str(E))
+                print( "Skipping %s: data structure could not be parsed: %s" % (fio_file, str(E)) )
                 pass
     return fio_results
