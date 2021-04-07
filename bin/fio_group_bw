@@ -33,5 +33,21 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Extract input data from fio group-reporting result files
     run_data = fiotools.Data.SeriesGroup( args.input_dir )
+
+    # Formatting for stacked line graph plot - Bandwidth
     bw_plot = fiotools.Plot.BandwidthClient( args.scenario, args.bs, run_data )
+    bw_plot.plot(
+        'Bandwidth vs clients - %s - %d' % (args.scenario, args.bs),
+        '%s bandwidth ($%s$)' % (args.scenario.capitalize(), "MB/s"),
+        1000.0,
+        '%s/%s-test-clients-vs-bandwidth-%d.png' % (args.output_dir, args.scenario, args.bs) )
+
+    # Formatting for stacked line graph plot - IOPS
+    iops_plot = fiotools.Plot.IOPSClient( args.scenario, args.bs, run_data )
+    iops_plot.plot( 
+        'IOPS vs clients - %s - %d' % (args.scenario, args.bs),
+        '%s IOPS ($%s$)' % (args.scenario.capitalize(), "kIOPS"),
+        1000.0,
+        '%s/%s-test-clients-vs-iops-%d.png' % (args.output_dir, args.scenario, args.bs) )
