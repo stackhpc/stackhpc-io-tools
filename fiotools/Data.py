@@ -122,3 +122,7 @@ class SeriesGroup:
         for S in self.samples:
             H.update( S.hostnames() )
         return H
+
+    def io_sizes(self):
+        ''' Find the set of unique IO sizes within the series of samples '''
+        return set(S.io_size for S in self.samples)
