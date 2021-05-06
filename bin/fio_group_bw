@@ -9,32 +9,50 @@ import fiotools.Data
 import fiotools.Plot
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Parse fio output by client count')
-    parser.add_argument('-f', '--force',
-        dest="force", action='store_const', const=True, required=False,
-        help='Overwrite previous output data, if existing')
-    parser.add_argument('-o','--output-dir', metavar='<path>',
-        dest="output_dir", type=str, required=True,
-        help='Directory for result data for plotting')
-    parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
-        dest="scenario", type=str, required=True,
-        help='Scenario name to add to plot titles')    
-    parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
-        dest="mode", type=str, required=True,
-        help='Mode to extract from json')    
-    parser.add_argument('-b', '--bs', metavar='<io-size>',
-        dest="bs", type=int, default=1024,
-        help='I/O size to fix while varying the number of clients')
-    parser.add_argument('-i', '--input-dir', dest='input_dir',
-        help='Directory of fio result files from fio in group-reporting json+ format')
-    parser.add_argument('-v', '--verbose',
-        dest="verbose", action='store_const', const=True, required=False,
-        help='Verbose mode, print additional details on stdout.')
 
-    args = parser.parse_args()
+    def parse_args():
+        parser = argparse.ArgumentParser(description='Parse fio output by client count')
+        parser.add_argument('-f', '--force',
+            dest="force", action='store_const', const=True, required=False,
+            help='Overwrite previous output data, if existing')
+        parser.add_argument('-o','--output-dir', metavar='<path>',
+            dest="output_dir", type=str, required=True,
+            help='Directory for result data for plotting')
+        parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
+            dest="scenario", type=str, required=True,
+            help='Scenario name to add to plot titles')
+        parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
+            dest="mode", type=str, required=True,
+            help='Mode to extract from json')
+        parser.add_argument('-b', '--bs', metavar='<io-size>',
+            dest="bs", type=int, default=None,
+            help='I/O size to fix while varying the number of clients')
+        parser.add_argument('-i', '--input-dir', dest='input_dir',
+            help='Directory of fio result files from fio in group-reporting json+ format')
+        parser.add_argument('-v', '--verbose',
+            dest="verbose", action='store_const', const=True, required=False,
+            help='Verbose mode, print additional details on stdout.')
+        return parser.parse_args()
+
+    def default_io_size_from_data(run_data):
+        run_bs = run_data.io_sizes()
+        if len(run_bs) != 1:
+            raise ValueError("Can't determine a default IO size.", run_bs)
+        return next(iter(run_bs))
+
+    def validate_io_size(bs, run_data):
+        run_bs = run_data.io_sizes()
+        if bs not in run_bs:
+            raise ValueError(f"Requested IO size does not exist in the run data.", bs, run_bs)
+
+    args = parse_args()
 
     # Extract input data from fio group-reporting result files
     run_data = fiotools.Data.SeriesGroup( args.input_dir )
+
+    if not args.bs:
+        args.bs = default_io_size_from_data(run_data)
+    validate_io_size(args.bs, run_data)
 
     # Formatting for stacked line graph plot - Bandwidth
     bw_plot = fiotools.Plot.BandwidthClient( args.scenario, args.bs, run_data )
@@ -46,7 +64,7 @@ if __name__ == "__main__":
 
     # Formatting for stacked line graph plot - IOPS
     iops_plot = fiotools.Plot.IOPSClient( args.scenario, args.bs, run_data )
-    iops_plot.plot( 
+    iops_plot.plot(
         'IOPS vs clients - %s - %d' % (args.scenario, args.bs),
         '%s IOPS ($%s$)' % (args.scenario.capitalize(), "kIOPS"),
         1000.0,
