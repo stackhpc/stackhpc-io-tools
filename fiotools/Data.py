@@ -30,7 +30,7 @@ class Result:
 ####################################################################################################
 
 class Sample:
-    ''' A Sample is a group of results from different clients that ran together. 
+    ''' A Sample is a group of results from different clients that ran together.
         The results have constant I/O type and constant I/O size '''
 
     def __init__(self, sample_group):
@@ -100,7 +100,7 @@ class SeriesGroup:
         self.samples = []
         if input_dir:
             for root, dirs, files in os.walk(input_dir):
-                self.samples = [ SampleGroup(os.path.join(root, F)) for F in files ]
+                self.samples = [ SampleGroup(os.path.join(root, F)) for F in files if not F.startswith('.') ]
                 print( "Found %d fio results in %s" % (len(self.samples), input_dir) )
 
     def select_samples(self, selector):
@@ -122,3 +122,7 @@ class SeriesGroup:
         for S in self.samples:
             H.update( S.hostnames() )
         return H
+
+    def io_sizes(self):
+        ''' Find the set of unique IO sizes within the series of samples '''
+        return set(S.io_size for S in self.samples)
