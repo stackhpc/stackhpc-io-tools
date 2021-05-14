@@ -34,6 +34,8 @@ def parse_args():
     parser.add_argument('-v', '--verbose',
         dest="verbose", action='store_const', const=True, required=False,
         help='Verbose mode, print additional details on stdout.')
+    parser.add_argument('--stacktrace', action='store_const', const=True, required=False,
+        help='Print stack trace when error is encountered.')
     return parser.parse_args()
 
 
@@ -78,9 +80,13 @@ def main(args):
 
 
 if __name__ == "__main__":
+    args = parse_args()
     try:
-        args = parse_args()
         main(args)
     except Exception as e:
+        if args.stacktrace:
+            # Lets cheat. Raising same exception again does the job
+            # and is way easier than dealing with Python tracebacks.
+            raise
         sys.stderr.write(str(e) + os.linesep)
         sys.exit(1)
