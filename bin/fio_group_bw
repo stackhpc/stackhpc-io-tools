@@ -5,48 +5,56 @@
 # Plot IOPS and bandwidth graphs for increasing numbers of test clients
 
 import argparse
+import os
+import sys
+
 import fiotools.Data
 import fiotools.Plot
 
-if __name__ == "__main__":
 
-    def parse_args():
-        parser = argparse.ArgumentParser(description='Parse fio output by client count')
-        parser.add_argument('-f', '--force',
-            dest="force", action='store_const', const=True, required=False,
-            help='Overwrite previous output data, if existing')
-        parser.add_argument('-o','--output-dir', metavar='<path>',
-            dest="output_dir", type=str, required=True,
-            help='Directory for result data for plotting')
-        parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
-            dest="scenario", type=str, required=True,
-            help='Scenario name to add to plot titles')
-        parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
-            dest="mode", type=str, required=True,
-            help='Mode to extract from json')
-        parser.add_argument('-b', '--bs', metavar='<io-size>',
-            dest="bs", type=int, default=None,
-            help='I/O size to fix while varying the number of clients')
-        parser.add_argument('-i', '--input-dir', dest='input_dir',
-            help='Directory of fio result files from fio in group-reporting json+ format')
-        parser.add_argument('-v', '--verbose',
-            dest="verbose", action='store_const', const=True, required=False,
-            help='Verbose mode, print additional details on stdout.')
-        return parser.parse_args()
+def parse_args():
+    parser = argparse.ArgumentParser(description='Parse fio output by client count')
+    parser.add_argument('-f', '--force',
+        dest="force", action='store_const', const=True, required=False,
+        help='Overwrite previous output data, if existing')
+    parser.add_argument('-o','--output-dir', metavar='<path>',
+        dest="output_dir", type=str, required=True,
+        help='Directory for result data for plotting')
+    parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
+        dest="scenario", type=str, required=True,
+        help='Scenario name to add to plot titles')
+    parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
+        dest="mode", type=str, required=True,
+        help='Mode to extract from json')
+    parser.add_argument('-b', '--bs', metavar='<io-size>',
+        dest="bs", type=int, default=None,
+        help='I/O size to fix while varying the number of clients')
+    parser.add_argument('-i', '--input-dir', dest='input_dir',
+        help='Directory of fio result files from fio in group-reporting json+ format')
+    parser.add_argument('-v', '--verbose',
+        dest="verbose", action='store_const', const=True, required=False,
+        help='Verbose mode, print additional details on stdout.')
+    parser.add_argument('--stacktrace', action='store_const', const=True, required=False,
+        help='Print stack trace when error is encountered.')
+    return parser.parse_args()
 
-    def default_io_size_from_data(run_data):
-        run_bs = run_data.io_sizes()
-        if len(run_bs) != 1:
-            raise ValueError("Can't determine a default IO size.", run_bs)
-        return next(iter(run_bs))
 
-    def validate_io_size(bs, run_data):
-        run_bs = run_data.io_sizes()
-        if bs not in run_bs:
-            raise ValueError(f"Requested IO size does not exist in the run data.", bs, run_bs)
+def default_io_size_from_data(run_data):
+    run_bs = run_data.io_sizes()
+    if len(run_bs) != 1:
+        run_bs_repr = ", ".join(str(x) for x in run_bs)
+        raise ValueError(f"Can't determine a default IO size. Available IO sizes: {run_bs_repr}.")
+    return next(iter(run_bs))
 
-    args = parse_args()
 
+def validate_io_size(bs, run_data):
+    run_bs = run_data.io_sizes()
+    if bs not in run_bs:
+        run_bs_repr = ", ".join(str(x) for x in run_bs)
+        raise ValueError(f"Requested IO size ({bs}) does not exist in the run data ({run_bs_repr}).")
+
+
+def main(args):
     # Extract input data from fio group-reporting result files
     run_data = fiotools.Data.SeriesGroup( args.input_dir )
 
@@ -69,3 +77,16 @@ if __name__ == "__main__":
         '%s IOPS ($%s$)' % (args.scenario.capitalize(), "kIOPS"),
         1000.0,
         '%s/%s-test-clients-vs-iops-%d.png' % (args.output_dir, args.scenario, args.bs) )
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    try:
+        main(args)
+    except Exception as e:
+        if args.stacktrace:
+            # Lets cheat. Raising same exception again does the job
+            # and is way easier than dealing with Python tracebacks.
+            raise
+        sys.stderr.write(str(e) + os.linesep)
+        sys.exit(1)
