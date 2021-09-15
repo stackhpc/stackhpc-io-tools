@@ -9,18 +9,21 @@ import os
 class Result:
     ''' A single fio result from a single host. '''
 
-    def __init__(self, fio_data):
+    def __init__(self, fio_data, hostname='localhost'):
         ''' Constructor from fio JSON data '''
 
         # Validation
         if 'job options' not in fio_data:
             raise KeyError("FIO sample output missing job options data")
-        if fio_data['job options']['rw'] not in ['read','write']:
+        if fio_data['job options']['rw'] in ['read','randread']:
+            self.fio_data = fio_data['read']
+        elif fio_data['job options']['rw'] in ['write','randwrite']:
+            self.fio_data = fio_data['write']
+        else:
             raise TypeError("Cannot process unexpected job type %s" % (fio_data['job options']['rw']))
 
         # Assign the JSON dict from either read or write case
-        self.fio_data = fio_data[fio_data['job options']['rw']]
-        self.hostname = fio_data['hostname']
+        self.hostname = hostname
         self.rw = fio_data['job options']['rw']
         self.io_size = self.fio_data['io_bytes'] / self.fio_data['total_ios']
         self.usr_cpu = fio_data['usr_cpu']
@@ -81,27 +84,36 @@ class SampleGroup(Sample):
 
         # We could potentially make use of the "All clients" aggregated sample,
         # although it will not be available in other formats
-        sample_group = [ Result(C) for C in S['client_stats'] if C['jobname'] != "All clients"]
+        sample_group = [ Result(C, C['hostname']) for C in S['client_stats'] if C['jobname'] != "All clients"]
         super(SampleGroup,self).__init__( sample_group )
 
 class SampleDir(Sample):
-    ''' A SampleDir is a directory tree of fio results that executed independently,
-        but at the same time as one another. '''
-    # WRITEME
+
+    def __init__(self, path, hostname='localhost'):
+        with open(path) as f:
+            S = json.load(f)
+
+        # Validation of input format
+        if 'global options' not in S:
+            raise KeyError("FIO sample output did not contain expected structure")
+        if 'bs' not in S['global options']:
+            raise TypeError("FIO blocksize (bs) not in the sample global options: group-reported data?")
+        if len(S['jobs']) != 1:
+            raise TypeError("FIO job data includes more than one result")
+
+        sample_group = [ Result(S['jobs'][0], hostname) ]
+        super(SampleDir,self).__init__( sample_group )
+
 
 ####################################################################################################
 
-class SeriesGroup:
+class Series:
     ''' Construct a series of samples for plotting '''
 
-    def __init__(self, input_dir=None):
+    def __init__(self, samples):
         ''' Given a directory of results, iterate the results to create a collection of samples '''
         # A dict indexed by number of client and returning sample data
-        self.samples = []
-        if input_dir:
-            for root, dirs, files in os.walk(input_dir):
-                self.samples = [ SampleGroup(os.path.join(root, F)) for F in files if not F.startswith('.') ]
-                print( "Found %d fio results in %s" % (len(self.samples), input_dir) )
+        self.samples = samples
 
     def select_samples(self, selector):
         ''' Constrain a series only to samples that match a given criteria '''
@@ -126,3 +138,46 @@ class SeriesGroup:
     def io_sizes(self):
         ''' Find the set of unique IO sizes within the series of samples '''
         return set(S.io_size for S in self.samples)
+
+
+
+class SeriesGroup(Series):
+    ''' Construct a series of samples for plotting '''
+
+    def __init__(self, input_dir=None):
+        ''' Given a directory of results, iterate the results to create a collection of samples '''
+        # A dict indexed by number of client and returning sample data
+        samples = []
+        if input_dir:
+            try:
+                for root, dirs, files in os.walk(input_dir):
+                    samples += [ SampleGroup(os.path.join(root, F)) for F in files if not F.startswith('.') ]
+            except OSError as E:
+                print( "Could not access input path %s" % (input_dir) )
+                raise E
+        
+            print( "Found %d fio results in %s" % (len(samples), input_dir) )
+
+        super(SeriesGroup,self).__init__( samples )
+
+
+class SeriesDir(Series):
+    ''' A single directory of results, which may have been executed
+        concurrently on a constant number of clients '''
+
+    def __init__(self, input_dir):
+        # Recursive explore to find samples and read them in
+        # List JSON files in the fio input directory
+        samples = []
+        hostname = os.path.split(input_dir)[-1]
+        try:
+            # Directory traversal
+            for root, dirs, files in os.walk(str(input_dir)):
+                samples += [ SampleDir(os.path.join(root, F), hostname) for F in files if not F.startswith('.') ] 
+        except OSError as E:
+            print( "Could not access input path %s" % (input_dir) )
+            raise E
+
+        print( "Found %d fio results in %s" % (len(samples), input_dir) )
+        super(SeriesDir,self).__init__( samples )
+

@@ -128,7 +128,7 @@ class ClatGrid:
                 (2**x, sum(clat_data.values()), iops_total))
         # Construct a dict of floating-point IO latencies
         io_data = {}
-        for y_str, z_str in clat_data.iteritems():
+        for y_str, z_str in iter(clat_data.items()):
             y = float(y_str)/self.ts_divider
             z = float(z_str)
             io_data[y] = z
@@ -151,7 +151,7 @@ class ClatGrid:
             This must be done once all results have been added. '''
 
         # For each blocksize
-        for X, X_results in self.io_data.iteritems():
+        for X, X_results in iter(self.io_data.items()):
             max_X_Z = 0.0
             Z_total = float(self.iops_data[X])
             io_density = []
@@ -192,7 +192,7 @@ class ClatGrid:
         self.grid = grid = np.zeros((self.grid_y, self.grid_x), dtype=np.dtype('double'))
 
         # Perform the gridding interpolation
-        for X, io_density in self.io_density.iteritems():
+        for X, io_density in iter(self.io_density.items()):
             col = X - self.min_X
             io_density_check = 0.0          # Paranoia
             grid_check = 0.0                # Paranoia
@@ -233,6 +233,7 @@ class ClatGrid:
         #self.cfdf.to_csv(self.output_dir/(self.mode+'-commit-latency-freq-dist.csv'))
 
     def plot_bw(self, figsize=(10, 8), fig=None, ax=None, ylim=None, kind='stacked', unit=''):
+        ylim = [self.min_Y, self.max_Y]
         if fig == None or ax == None:
             fig, ax = plt.subplots(figsize=figsize)
         if kind == 'boxplot':
@@ -241,7 +242,8 @@ class ClatGrid:
             ax.set_prop_cycle('color', [plt.cm.jet(i) for i in np.linspace(0, 1, len(self.bwdf))])
             self.bwdf.apply(lambda x: x/self.bs_divider).T.plot(ax=ax, stacked=True, legend=False, grid=True, ylim=ylim, linewidth=1)
         ax.set_title('Block size vs %s bandwidth - %s - %s - %s client(s)' % (self.mode, self.scenario, self.rw, self.num_clients))
-        ax.set_xticks(sorted(set(self.bwdf.index)))
+        #ax.set_xticks(list(self.bwdf.columns))
+        ax.set_xticks(self.bwdf.columns)
         ax.set_xlabel('Block size - $2^n$')
         ax.set_ylabel('%s bandwidth ($%s$)' % (self.mode.capitalize(), self.bs_label))
         fig.savefig(str(self.output_dir/('%s-blocksize-vs-bandwidth.png' % kind)))
@@ -347,19 +349,26 @@ class ClatGrid:
                 continue
             bs_list = sorted(fio_results[self.num_clients].keys())
             for bs in bs_list:
-                if bs not in self.skip_bs and bs >= self.min_bs and bs <= self.max_bs:
-                    log2_bs = int(math.log(bs,2))
-                    for bs_job in fio_results[self.num_clients][bs]['jobs']:
-                        # Read and write bandwidth as a function of I/O size
-                        bw.append({'log2_bs': log2_bs, 'bw': bs_job[self.mode]['bw']})
-                        # IOPS and IO latency percentiles as a function of I/O size
-                        row = {'log2_bs': log2_bs, 'iops': bs_job[self.mode]['iops']}
-                        row.update({float(percentile): clat_ns/self.ts_divider for percentile, clat_ns in bs_job[self.mode]['clat_ns']['percentile'].iteritems()})
-                        cl.append(row)
-                        # Aggregate data from each dataset
-                        self.add_series(log2_bs, bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins'])
-                        if self.verbose:
-                            print( "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios']) )
+                if bs in self.skip_bs or bs < self.min_bs or bs > self.max_bs:
+                    continue
+
+                log2_bs = int(math.log(bs,2))
+                for bs_job in fio_results[self.num_clients][bs][0]['jobs']:
+                    if bs_job['error'] > 0:
+                        print( "I/O size %8d, job %s: error code %d, skipping" % (bs, self.mode, bs_job['error']) )
+                        continue
+
+                    # Read and write bandwidth as a function of I/O size
+                    bw.append({'log2_bs': log2_bs, 'bw': bs_job[self.mode]['bw']})
+                    # IOPS and IO latency percentiles as a function of I/O size
+                    row = {'log2_bs': log2_bs, 'iops': bs_job[self.mode]['iops']}
+                    row.update({float(percentile): clat_ns/self.ts_divider for percentile, clat_ns in iter(bs_job[self.mode]['clat_ns']['percentile'].items())})
+                    cl.append(row)
+                    # Aggregate data from each dataset
+                    self.add_series(log2_bs, bs_job[self.mode]['total_ios'], bs_job[self.mode]['clat_ns']['bins'])
+                    if self.verbose:
+                        print( "I/O size %8d, job %s: %d samples" % (bs, self.mode, bs_job[self.mode]['total_ios']) )
+
                 if self.verbose:
                     print( "%d-client config: Aggregated data for %d I/Os, max latency %f %s" % (self.num_clients, sum([x['iops'] for x in cl]), self.max_Y, self.timescale) )
 
@@ -397,7 +406,7 @@ class ClatGrid:
                     iops.append({'test_clients': num_clients, 'iops': bs_job[self.mode]['iops']})
                     # IOPS and IO latency percentiles as a function of I/O size
                     row = {'test_clients': num_clients, 'iops': bs_job[self.mode]['iops']}
-                    row.update({float(percentile): clat_ns/self.ts_divider for percentile, clat_ns in bs_job[self.mode]['clat_ns']['percentile'].iteritems()})
+                    row.update({float(percentile): clat_ns/self.ts_divider for percentile, clat_ns in iter(bs_job[self.mode]['clat_ns']['percentile'].items())})
                     cl.append(row)
                     # Aggregate data from each dataset
                     # A curiosity with fio: in some cranky cases the total_ios is not the sum of the histograms.
@@ -470,7 +479,10 @@ def get_fio_results(fio_file_list):
             try:
                 fio_run_data = json.load(fio_fd)
                 test_bs = int(fio_run_data['global options']['bs'])
-                test_clients = int(fio_run_data['meta']['total_clients'])
+                if 'meta' in fio_run_data:
+                    test_clients = int(fio_run_data['meta']['total_clients'])
+                else:
+                    test_clients = 1
                 if test_clients not in fio_results:
                     fio_results[test_clients] = {}
                 if test_bs not in fio_results[test_clients]:

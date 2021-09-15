@@ -12,12 +12,9 @@ from matplotlib import pyplot as plt
 
 class StackedLine:
     ''' Stacked Line plots '''
-    def __init__(self, jobname, io_size, run_data, metric, scale_factor=1.0):
+    def __init__(self, jobname, sub_data, metric, scale_factor=1.0):
 
-        # Reduce to a subset selecting all samples matching required criteria
-        # sub_data will contain only the samples we require
-        self.sub_data = copy.copy( run_data )
-        self.sub_data.select_samples( lambda S: S.io_size == io_size and S.jobname == jobname )
+        self.sub_data = sub_data
 
         # Extract data for each host in the series.
         # SeriesGroup - contains samples from many runs
@@ -82,8 +79,13 @@ class BandwidthClient(StackedLine):
     def __init__(self, jobname, io_size, run_data, output_dir='.'):
         ''' Constructor from a series of samples and refining parameters '''
 
+        # Reduce to a subset selecting all samples matching required criteria
+        # sub_data will contain only the samples we require
+        sub_data = copy.copy( run_data )
+        sub_data.select_samples( lambda S: S.io_size == io_size and S.jobname == jobname )
+
         # Extract the required data
-        super(BandwidthClient, self).__init__( jobname, io_size, run_data, 'bw', 0.001 )
+        super(BandwidthClient, self).__init__( jobname, sub_data, 'bw', 0.001 )
 
 class IOPSClient(StackedLine):
     ''' Stacked Line plot of IOPS againstknumber of clients '''
@@ -91,5 +93,36 @@ class IOPSClient(StackedLine):
     def __init__(self, jobname, io_size, run_data, output_dir='.'):
         ''' Constructor from a series of samples and refining parameters '''
 
+        # Reduce to a subset selecting all samples matching required criteria
+        # sub_data will contain only the samples we require
+        sub_data = copy.copy( run_data )
+        sub_data.select_samples( lambda S: S.io_size == io_size and S.jobname == jobname )
+
         # Extract the required data
-        super(IOPSClient, self).__init__( jobname, io_size, run_data, 'iops', 0.001 )
+        super(IOPSClient, self).__init__( jobname, sub_data, 'iops', 0.001 )
+
+
+class BandwidthBS(StackedLine):
+    ''' Stacked Line plot of bandwidth against blocksize '''
+
+    def __init__(self, jobname, io_size, run_data, output_dir='.'):
+        ''' Constructor from a series of samples and refining parameters '''
+
+        # Reduce to a subset selecting all samples matching required criteria
+        # sub_data will contain only the samples we require
+        sub_data = copy.copy( run_data )
+
+        # STIG: Not just the one parent class constructor
+        # One method for per-client plots, one for per BS
+
+        # Extract the required data
+        super(BandwidthBS, self).__init__( jobname, sub_data, 'bw', 0.001 )
+
+#class IOPSBS(StackedLine):
+#    ''' Stacked Line plot of IOPS againstknumber of clients '''
+#
+#    def __init__(self, jobname, io_size, run_data, output_dir='.'):
+#        ''' Constructor from a series of samples and refining parameters '''
+#
+#        # Extract the required data
+#        super(IOPSClient, self).__init__( jobname, io_size, run_data, 'iops', 0.001 )
