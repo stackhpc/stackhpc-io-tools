@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# Begun by Stig Telfer, StackHPC Ltd, 15th October 2018
+
+import argparse
+from fiotools import ClatGrid
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Parse fio output by client count')
+    parser.add_argument('-L', '--logscale',
+        dest="logscale", action='store_const', const=True, required=False,
+        help='Logarithmic axes for latency plots')
+    parser.add_argument('-f', '--force',
+        dest="force", action='store_const', const=True, required=False,
+        help='Overwrite previous output data, if existing')
+    parser.add_argument('-o','--output-dir', metavar='<path>',
+        dest="output_dir", type=str, required=True,
+        help='Directory for result data for plotting')
+    parser.add_argument('-s','--scenario', metavar='e.g. <CephFS|BeeGFS>',
+        dest="scenario", type=str, required=True,
+        help='Scenario name to add to plot titles')    
+    parser.add_argument('-m','--mode', metavar='<read|write|randread|randwrite>',
+        dest="mode", type=str, required=True,
+        help='Mode to extract from json')    
+    parser.add_argument('-u', '--units', metavar='<ns|us|ms>',
+        dest="units", type=str, required=False, choices=['ns', 'us', 'ms'], default="us",
+        help='Latency time units')
+    parser.add_argument('-b', '--bs', metavar='<io-size>',
+        dest="bs", type=int, default=1024,
+        help='I/O size to fix while varying the number of clients')
+    parser.add_argument('-i', '--input-dirs', dest='input_dirs', nargs='+',
+        help='Directory of fio result files from fio in json+ format')
+    parser.add_argument('-v', '--verbose',
+        dest="verbose", action='store_const', const=True, required=False,
+        help='Verbose mode, print additional details on stdout.')
+
+    args = parser.parse_args()
+
+    # Logarithmic plots fare better with less granular bins
+    if args.logscale:
+        granularity=200
+    else:
+        granularity=2000    
+    
+    grid = ClatGrid(
+        input_dirs=args.input_dirs, output_dir=args.output_dir,
+        granularity=granularity, mode=args.mode, scenario=args.scenario,
+        force=args.force, verbose=args.verbose,
+        logscale=args.logscale, timescale=args.units, min_bs=args.bs, max_bs=args.bs
+    )
