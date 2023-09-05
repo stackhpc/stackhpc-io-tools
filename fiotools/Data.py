@@ -25,7 +25,7 @@ class Result:
         # Assign the JSON dict from either read or write case
         self.hostname = hostname
         self.rw = fio_data['job options']['rw']
-        self.io_size = self.fio_data['io_bytes'] / self.fio_data['total_ios']
+        self.io_size = int(self.fio_data['io_bytes'] / self.fio_data['total_ios'])
         self.usr_cpu = fio_data['usr_cpu']
         self.sys_cpu = fio_data['sys_cpu']
         self.jobname = fio_data['jobname']
@@ -41,7 +41,7 @@ class Sample:
         self.clients = len(sample_group)
         assert self.clients >= 1, "Constructed with empty sample data"
         self.jobname = sample_group[0].jobname
-        self.io_size = sample_group[0].io_size
+        self.io_size = int(sample_group[0].io_size)
 
         # Paranoia
         for sample in sample_group:
